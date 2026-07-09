@@ -1,0 +1,91 @@
+steps:
+  # Step 1: Run the Agent Evaluation Gate (CI/CD Quality Check)
+  # This runs in a clean python environment before building containers to catch prompt/code drift immediately.
+  - name: 'python:3.11-slim'
+    id: 'agent-evaluation-gate'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install --no-cache-dir -r backend/requirements.txt
+        export PROJECT_ID=$PROJECT_ID
+        export LOCATION=us-central1
+        export LOCAL_DEVELOPMENT=false
+        python scripts/eval_test.py
+
+  # Step 2: Build and Tag Catalog MCP Server
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-mcp-server'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/catalog-mcp-server:$COMMIT_SHA', './catalog-mcp']
+
+  # Step 3: Build and Tag Agent Backend
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend-service'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/backend-service:$COMMIT_SHA', './backend']
+
+  # Step 4: Build and Tag Nuxt Frontend
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend-service'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend-service:$COMMIT_SHA', './frontend']
+
+  # Step 5: Push MCP image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-mcp'
+    args: ['push', 'gcr.io/$PROJECT_ID/catalog-mcp-server:$COMMIT_SHA']
+
+  # Step 6: Push Backend image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    args: ['push', 'gcr.io/$PROJECT_ID/backend-service:$COMMIT_SHA']
+
+  # Step 7: Push Frontend image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    args: ['push', 'gcr.io/$PROJECT_ID/frontend-service:$COMMIT_SHA']
+
+  # Step 8: Deploy Catalog MCP Server (Private Ingress, Service-to-Service OIDC)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-mcp-server'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'catalog-mcp-server'
+      - '--image=gcr.io/$PROJECT_ID/catalog-mcp-server:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID'
+
+  # Step 9: Deploy Agent Backend (Public Ingress, connects to private MCP)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend-service'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'backend-service'
+      - '--image=gcr.io/$PROJECT_ID/backend-service:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,MCP_SERVER_URL=https://catalog-mcp-server-us-central1-placeholder.a.run.app/mcp/sse,LOCAL_DEVELOPMENT=false'
+
+  # Step 10: Deploy Nuxt Frontend (Public Ingress, connects to backend)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-frontend-service'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'frontend-service'
+      - '--image=gcr.io/$PROJECT_ID/frontend-service:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=NUXT_PUBLIC_BACKEND_URL=https://backend-service-us-central1-placeholder.a.run.app'
+
+images:
+  - 'gcr.io/$PROJECT_ID/catalog-mcp-server:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/backend-service:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/frontend-service:$COMMIT_SHA'

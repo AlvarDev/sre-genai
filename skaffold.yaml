@@ -1,0 +1,36 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: sre-genai-minikube
+build:
+  local:
+    push: false
+  artifacts:
+    - image: frontend-service
+      context: frontend
+      docker:
+        dockerfile: Dockerfile
+    - image: backend-service
+      context: backend
+      docker:
+        dockerfile: Dockerfile
+    - image: catalog-mcp-server
+      context: catalog-mcp
+      docker:
+        dockerfile: Dockerfile
+manifests:
+  rawYaml:
+    - k8s/catalog-mcp.yaml
+    - k8s/backend.yaml
+    - k8s/frontend.yaml
+deploy:
+  kubectl: {}
+portForward:
+  - resourceType: Service
+    resourceName: frontend-service
+    port: 3000
+    localPort: 3000
+  - resourceType: Service
+    resourceName: backend-service
+    port: 8080
+    localPort: 8080

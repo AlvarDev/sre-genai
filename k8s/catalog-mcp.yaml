@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-mcp-deployment
+  labels:
+    app: catalog-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-mcp
+  template:
+    metadata:
+      labels:
+        app: catalog-mcp
+    spec:
+      containers:
+        - name: catalog-mcp
+          image: catalog-mcp-server
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: PORT
+              value: "8001"
+            - name: FIRESTORE_EMULATOR_HOST
+              value: "10.0.2.2:8080"
+            - name: LOCAL_DEVELOPMENT
+              value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-mcp-service
+spec:
+  selector:
+    app: catalog-mcp
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001
