@@ -7,11 +7,14 @@ steps:
     args:
       - '-c'
       - |
-        pip install --no-cache-dir -r backend/requirements.txt
+        pip install --no-cache-dir uv
+        # Synchronize dependencies based on the backend lockfile
+        uv sync --project backend/ --frozen
         export PROJECT_ID=$PROJECT_ID
         export LOCATION=us-central1
         export LOCAL_DEVELOPMENT=false
-        python scripts/eval_test.py
+        # Run test using the locked virtualenv python
+        backend/.venv/bin/python scripts/eval_test.py
 
   # Step 2: Build and Tag Catalog MCP Server
   - name: 'gcr.io/cloud-builders/docker'

@@ -1,0 +1,12 @@
+[project]
+name = "sre-genai-catalog-mcp"
+version = "0.1.0"
+description = "Catalog MCP Server using Python MCP SDK"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "mcp>=1.0.0",
+    "google-cloud-firestore>=2.11.1",
+    "google-cloud-aiplatform>=1.30.0",
+]
