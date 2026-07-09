@@ -33,6 +33,16 @@ spec:
               value: "true"
             - name: PROJECT_ID
               value: "sre-genai"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/gcloud/application_default_credentials.json"
+          volumeMounts:
+            - name: gcloud-config
+              mountPath: /gcloud
+              readOnly: true
+      volumes:
+        - name: gcloud-config
+          hostPath:
+            path: /Users/alvardev/.config/gcloud
 ---
 apiVersion: v1
 kind: Service
