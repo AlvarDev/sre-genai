@@ -5,15 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import firebase_admin
 from firebase_admin import credentials, firestore
-from backend.agent.orchestrator import run_text_chat, run_visual_search
-from backend.agent.guardrail import GuardrailException
+from agent.orchestrator import run_text_chat, run_visual_search
+from agent.guardrail import GuardrailException
 
 # 1. Initialize Firebase Admin and Firestore Client
-# Explicitly targeting our named database 'sre-genai'
 if not firebase_admin._apps:
     firebase_admin.initialize_app()
 
-db = firestore.client(database="sre-genai")
+from google.cloud import firestore as gcloud_firestore
+db = gcloud_firestore.Client(database="sre-genai")
 
 # 2. FastAPI Setup
 app = FastAPI(title="SRE GenAI Agent Backend")

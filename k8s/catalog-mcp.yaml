@@ -23,8 +23,6 @@ spec:
           env:
             - name: PORT
               value: "8001"
-            - name: FIRESTORE_EMULATOR_HOST
-              value: "10.0.2.2:8080"
             - name: LOCAL_DEVELOPMENT
               value: "true"
             - name: GOOGLE_APPLICATION_CREDENTIALS

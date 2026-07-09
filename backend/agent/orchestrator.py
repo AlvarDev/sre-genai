@@ -1,10 +1,11 @@
 import os
 from google.adk.agents.llm_agent import Agent
+from google import genai
+from google.genai import types
 import vertexai
 from vertexai.generative_models import GenerativeModel, Content, Part
-from vertexai.vision_models import MultiModalEmbeddingModel
-from backend.agent.search import search_catalog_tool, search_catalog_by_image_tool
-from backend.agent.guardrail import validate_user_input, filter_retrieved_products
+from agent.search import search_catalog_tool, search_catalog_by_image_tool
+from agent.guardrail import validate_user_input, filter_retrieved_products
 
 # 1. Initialize Vertex AI
 project_id = os.getenv("PROJECT_ID", "sre-genai")
@@ -64,19 +65,22 @@ def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
     """
     # 1. Generate Image Embedding Vector
     if os.getenv("LOCAL_DEVELOPMENT") == "true" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-        # Local development offline simulation: dummy vector
-        image_embedding = [0.1] * 1408
+        # Local development offline simulation: dummy vector (768 dimensions)
+        image_embedding = [0.1] * 768
     else:
-        # Load multimodal embedding model
-        # gemini-embedding-2 or multimodalembedding@001 (using multimodalembedding)
-        model = MultiModalEmbeddingModel.from_pretrained("multimodalembedding")
-        # Load image from bytes
-        from vertexai.vision_models import Image as VertexImage
-        image = VertexImage(image_bytes)
-        
-        # Get embeddings: returns text and image embeddings
-        embeddings = model.get_embeddings(image=image)
-        image_embedding = embeddings.image_embedding
+        # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI
+        client = genai.Client(vertexai=True, project=project_id, location=location)
+        result = client.models.embed_content(
+            model="gemini-embedding-2",
+            contents=[
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type="image/jpeg"
+                )
+            ],
+            config=types.EmbedContentConfig(output_dimensionality=768)
+        )
+        image_embedding = result.embeddings[0].values
 
     # 2. Search catalog by image vector
     raw_results = search_catalog_by_image_tool(image_embedding)

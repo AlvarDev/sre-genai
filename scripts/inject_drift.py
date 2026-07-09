@@ -1,19 +1,11 @@
 import os
 from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
-import vertexai
-from vertexai.language_models import TextEmbeddingModel
 
-# 1. Initialize Firestore Client targeting 'sre-genai' named database
+# 1. Initialize Firestore Client
 db = firestore.Client(database="sre-genai")
 
-# 2. Initialize Vertex AI
-project_id = os.getenv("PROJECT_ID", "sre-genai")
-location = os.getenv("LOCATION", "us-central1")
-if os.getenv("LOCAL_DEVELOPMENT") != "true":
-    vertexai.init(project=project_id, location=location)
-
-# 3. Define the off-topic grocery items to inject
+# 2. Define the off-topic grocery items to inject/remove
 grocery_items = [
     {
         "parent_sku": "organic-potatoes",
@@ -40,15 +32,6 @@ grocery_items = [
 def inject_database_drift():
     print("WARNING: Injecting off-topic database drift (grocery items) into 'sre-genai' database!")
     
-    # 4. Load text embedding model if online
-    model = None
-    if os.getenv("LOCAL_DEVELOPMENT") != "true" or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-        try:
-            model = TextEmbeddingModel.from_pretrained("text-embedding-004")
-            print("Loaded Vertex AI text-embedding-004 model successfully.")
-        except Exception as e:
-            print(f"Warning: Could not load Vertex AI embedding model: {e}. Mocking.")
-
     collection = db.collection("products")
 
     for i, p in enumerate(grocery_items):
@@ -57,21 +40,8 @@ def inject_database_drift():
         # Combine text fields to generate embedding input
         combined_text = f"{p['title']} {p['shortdesc']} {p['longdesc']} {p['keywords']}"
         
-        # Text embedding vector (768 dimensions)
-        if model:
-            try:
-                embeddings = model.get_embeddings([combined_text])
-                text_vector = embeddings[0].values
-            except Exception as e:
-                print(f"Embedding generation failed for {p['parent_sku']}: {e}. Mocking.")
-                text_vector = [0.85] * 768 # High offset to simulate distinct topic
-        else:
-            # Mock vector for offline local emulator testing
-            text_vector = [0.85] * 768
-            
-        # Multimodal image embedding vector (1408 dimensions)
-        # We set an image vector that will trigger matches for "potato" in visual queries
-        image_vector = [0.9] * 1408
+        # Multimodal image embedding vector (768 dimensions)
+        image_vector = [0.9] * 768
         
         # Build Firestore Document
         doc_data = {
@@ -84,7 +54,6 @@ def inject_database_drift():
             "longdesc": p["longdesc"],
             "keywords": p["keywords"],
             "combined_text": combined_text,
-            "text_embeddings": Vector(text_vector),
             "image_embeddings": Vector(image_vector)
         }
         
@@ -94,12 +63,40 @@ def inject_database_drift():
 
     print("Database drift contamination complete.")
 
-if __name__ == "__main__":
-    if os.getenv("FIRESTORE_EMULATOR_HOST") is None:
-        os.environ["FIRESTORE_EMULATOR_HOST"] = "localhost:8080"
+def remove_database_drift():
+    print("Removing off-topic database drift (grocery items) from 'sre-genai' database...")
+    collection = db.collection("products")
+    
+    for p in grocery_items:
+        sku = p["parent_sku"]
+        doc_ref = collection.document(sku)
         
-    inject_drift_choice = input("Are you sure you want to contaminate the production database with grocery drift? (y/N): ")
-    if inject_drift_choice.lower() == 'y':
-        inject_database_drift()
+        # Check if document exists before deleting
+        if doc_ref.get().exists:
+            doc_ref.delete()
+            print(f"drift item successfully removed: {sku}")
+        else:
+            print(f"drift item not found, skipping: {sku}")
+            
+    print("Database cleanup complete.")
+
+if __name__ == "__main__":
+    print("Select an option:")
+    print("1. Inject grocery drift (contaminate database)")
+    print("2. Remove grocery drift (clean database)")
+    choice = input("Enter option (1 or 2): ").strip()
+    
+    if choice == "1":
+        confirm = input("Are you sure you want to contaminate the database with grocery drift? (y/N): ")
+        if confirm.lower() == 'y':
+            inject_database_drift()
+        else:
+            print("Injection aborted.")
+    elif choice == "2":
+        confirm = input("Are you sure you want to remove the grocery drift? (y/N): ")
+        if confirm.lower() == 'y':
+            remove_database_drift()
+        else:
+            print("Cleanup aborted.")
     else:
-        print("Injection aborted.")
+        print("Invalid option selected.")

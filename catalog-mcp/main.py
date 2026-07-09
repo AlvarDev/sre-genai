@@ -5,20 +5,14 @@ from mcp.server.fastmcp import FastMCP
 from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
-import vertexai
-from vertexai.language_models import TextEmbeddingModel
+from google import genai
+from google.genai import types
 
 # 1. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID", "sre-genai")
 location = os.getenv("LOCATION", "us-central1")
 
-# Initialize Vertex AI for generating text query embeddings
-if os.getenv("LOCAL_DEVELOPMENT") != "true":
-    vertexai.init(project=project_id, location=location)
-
 # 2. Initialize Firestore Client
-# The Firestore library automatically detects FIRESTORE_EMULATOR_HOST if set in dev.
-# We explicitly target the named database 'sre-genai'.
 db = firestore.Client(database="sre-genai")
 
 # 3. Initialize the FastMCP Server
@@ -32,20 +26,24 @@ def search_catalog(query_text: str) -> str:
     Performs a vector search on the text_embeddings field.
     """
     try:
-        # Generate embedding for the query text
+        # Generate embedding for the query text using the Multimodal Embedding model (768 dimensions)
         if os.getenv("LOCAL_DEVELOPMENT") == "true" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
             # Dummy vector for offline local testing
             query_vector = [0.1] * 768
         else:
-            # Load text embedding model
-            model = TextEmbeddingModel.from_pretrained("text-embedding-004")
-            embeddings = model.get_embeddings([query_text])
-            query_vector = embeddings[0].values
+            # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI
+            client = genai.Client(vertexai=True, project=project_id, location=location)
+            result = client.models.embed_content(
+                model="gemini-embedding-2",
+                contents=query_text,
+                config=types.EmbedContentConfig(output_dimensionality=768)
+            )
+            query_vector = result.embeddings[0].values
 
-        # Perform nearest-neighbor vector search in Firestore
+        # Perform nearest-neighbor vector search in Firestore on the image_embeddings field
         collection = db.collection("products")
         vector_query = collection.find_nearest(
-            vector_field="text_embeddings",
+            vector_field="image_embeddings",
             query_vector=Vector(query_vector),
             distance_measure=DistanceMeasure.COSINE,
             limit=3
