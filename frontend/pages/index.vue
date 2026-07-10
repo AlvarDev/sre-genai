@@ -59,15 +59,9 @@
             :key="index" 
             :class="['message-row', msg.role === 'user' ? 'user-row' : 'agent-row']"
           >
-            <!-- Agent Avatar -->
-            <div class="avatar agent-avatar" v-if="msg.role === 'agent'">
-              <svg viewBox="0 0 24 24" class="avatar-svg">
-                <path fill="var(--google-blue)" d="M21.35 11.1H12v2.7h5.35C17 15.35 14.85 16.5 12 16.5c-2.9 0-5.25-2.35-5.25-5.25S9.1 6 12 6c1.45 0 2.75.55 3.75 1.5l2-2C16.05 3.8 14.15 3 12 3 7.05 3 3 7.05 3 12s4.05 9 9 9c5.2 0 8.65-3.65 8.65-8.8 0-.6-.05-1.2-.3-1.6z"/>
-              </svg>
-            </div>
-
             <!-- Message Bubble -->
             <div class="message-bubble-wrapper">
+
               <div class="message-bubble">
                 <!-- Image attachment if user sent an image -->
                 <div class="image-attachment" v-if="msg.imageUrl">
@@ -100,20 +94,10 @@
                 </div>
               </div>
             </div>
-
-            <!-- User Avatar -->
-            <div class="avatar user-avatar" v-if="msg.role === 'user'">
-              <span class="user-initial">U</span>
-            </div>
           </div>
 
           <!-- Loading / Typing Indicator -->
           <div class="message-row agent-row" v-if="isTyping">
-            <div class="avatar agent-avatar">
-              <svg viewBox="0 0 24 24" class="avatar-svg">
-                <path fill="var(--google-blue)" d="M21.35 11.1H12v2.7h5.35C17 15.35 14.85 16.5 12 16.5c-2.9 0-5.25-2.35-5.25-5.25S9.1 6 12 6c1.45 0 2.75.55 3.75 1.5l2-2C16.05 3.8 14.15 3 12 3 7.05 3 3 7.05 3 12s4.05 9 9 9c5.2 0 8.65-3.65 8.65-8.8 0-.6-.05-1.2-.3-1.6z"/>
-              </svg>
-            </div>
             <div class="message-bubble-wrapper">
               <div class="message-bubble typing-bubble">
                 <div class="typing-indicator">
@@ -589,19 +573,14 @@ const submitMessage = async () => {
 
 
 
-/* Messages List */
-.messages-list {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
+/* Chat Message Stream (Minimalist, Box-free & Bubble-free) */
 .message-row {
   display: flex;
-  gap: 16px;
+  gap: 24px;
   width: 100%;
   max-width: 85%;
   animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  margin-bottom: 48px; /* spacious separation between Q&A rounds */
 }
 
 .user-row {
@@ -616,67 +595,102 @@ const submitMessage = async () => {
 
 /* Avatars */
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 2px; /* align with text header */
 }
 
 .agent-avatar {
-  background-color: var(--panel-color);
-  border: 1px solid var(--border-color-light);
-  box-shadow: var(--shadow-subtle);
+  background-color: transparent; /* no background card */
+  border: none;
+  box-shadow: none;
 }
 
 .avatar-svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 .user-avatar {
-  background-color: var(--google-blue);
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
+  background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-green) 100%) !important;
+  color: white !important;
 }
 
-.user-initial {
-  display: inline-block;
-  line-height: 1;
-}
-
-/* Bubbles */
+/* Content Container */
 .message-bubble-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   max-width: 100%;
+  width: 100%;
 }
 
+.user-row .message-bubble-wrapper {
+  align-items: flex-end;
+}
+
+.agent-row .message-bubble-wrapper {
+  align-items: flex-start;
+}
+
+.message-sender-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sender-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sender-tag {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sender-tag.user {
+  background-color: var(--google-blue-soft);
+  color: var(--google-blue-text);
+}
+
+.sender-tag.agent {
+  background-color: var(--google-green-soft);
+  color: var(--google-green-text);
+}
+
+/* Minimalist pure text containers */
 .message-bubble {
-  padding: 16px 20px;
-  border-radius: var(--radius-md);
-  line-height: 1.6;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  line-height: 1.65;
   font-size: 15px;
+  color: var(--text-primary);
 }
 
 .user-row .message-bubble {
-  background-color: var(--google-blue-soft);
-  color: var(--google-blue-text);
-  border: 1px solid var(--user-bubble-border);
-  border-top-right-radius: 4px;
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  color: var(--google-blue-text) !important;
+  border-right: none !important;
+  padding: 0 !important;
+  text-align: right;
 }
 
 .agent-row .message-bubble {
-  background-color: var(--panel-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color-light);
-  border-top-left-radius: 4px;
-  box-shadow: var(--shadow-subtle);
+  color: var(--text-primary) !important;
+  border-left: none !important;
+  padding: 0 !important;
+  text-align: left;
 }
 
 .image-attachment img {
@@ -697,7 +711,7 @@ const submitMessage = async () => {
 
 /* Typing Indicator */
 .typing-bubble {
-  padding: 16px 24px;
+  padding: 8px 0 !important;
   display: flex;
   align-items: center;
 }
@@ -1158,12 +1172,12 @@ const submitMessage = async () => {
   }
   
   .chat-feed-container {
-    padding: 24px 16px 150px 16px;
+    padding: 24px 28px 150px 28px;
     gap: 20px;
   }
   
   .message-row {
-    max-width: 90%;
+    max-width: 100%;
     gap: 12px;
   }
   
