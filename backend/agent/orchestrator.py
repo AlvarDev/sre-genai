@@ -33,7 +33,7 @@ def search_store_catalog(query_text: str) -> str:
     
     return clean_results
 
-def run_text_chat(user_query: str, chat_history: list) -> str:
+def run_text_chat(user_query: str, chat_history: list) -> dict:
     """
     Processes a text query. Validates input, updates history, and returns the response.
     """
@@ -64,7 +64,47 @@ def run_text_chat(user_query: str, chat_history: list) -> str:
     # 4. Execute chat request
     response = chat.send_message(safe_query)
     
-    return response.text
+    # 5. Extract products from function responses in the chat history
+    structured_products = []
+    try:
+        for content in chat.get_history():
+            if not content.parts:
+                continue
+            for part in content.parts:
+                if part.function_response:
+                    resp_val = part.function_response.response
+                    if isinstance(resp_val, dict):
+                        result_str = resp_val.get("result") or resp_val.get("output") or ""
+                        if not result_str and resp_val:
+                            result_str = next(iter(resp_val.values()))
+                        
+                        if isinstance(result_str, str) and result_str:
+                            parts = result_str.split("\n---\n")
+                            for p_part in parts:
+                                if not p_part.strip():
+                                    continue
+                                lines = p_part.strip().split("\n")
+                                p_dict = {}
+                                for line in lines:
+                                    if line.startswith("Title:"):
+                                        p_dict["title"] = line.replace("Title:", "").strip()
+                                    elif line.startswith("SKU:"):
+                                        p_dict["parent_sku"] = line.replace("SKU:", "").strip()
+                                    elif line.startswith("Price:"):
+                                        p_dict["retail_price"] = line.replace("Price: R$", "").replace("Price:", "").strip()
+                                    elif line.startswith("Description:"):
+                                        p_dict["shortdesc"] = line.replace("Description:", "").strip()
+                                    elif line.startswith("Image URL:"):
+                                        p_dict["img_url"] = line.replace("Image URL:", "").strip()
+                                if p_dict:
+                                    structured_products.append(p_dict)
+    except Exception as e:
+        print(f"Error parsing products from chat history: {e}")
+        
+    return {
+        "text": response.text,
+        "products": structured_products
+    }
 
 def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
     """

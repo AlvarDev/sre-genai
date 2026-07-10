@@ -262,10 +262,23 @@ onMounted(() => {
 })
 
 // Scroll chat history to bottom
-const scrollToBottom = async () => {
+const scrollToBottom = async (force = false) => {
+  // 1. Check window scroll metrics BEFORE Vue updates the DOM
+  const threshold = 150
+  const scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+  const viewportHeight = window.innerHeight
+  const oldTotalHeight = document.documentElement.scrollHeight
+  const isNearBottom = oldTotalHeight - (scrollPosition + viewportHeight) < threshold
+
+  // 2. Wait for Vue to render the new message block
   await nextTick()
-  if (historyContainer.value) {
-    historyContainer.value.scrollTop = historyContainer.value.scrollHeight
+
+  // 3. Scroll browser window if forced (user query) or if they were already at the bottom
+  if (force || isNearBottom) {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'smooth'
+    })
   }
 }
 
@@ -279,8 +292,18 @@ const formatText = (text) => {
 
 // Handle unsplash fallbacks if store urls are offline placeholders
 const getValidImageUrl = (url) => {
-  if (url && url.startsWith('http')) return url
-  return 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=300' // Generic premium gadget placeholder
+  if (!url) {
+    return 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=300' // Generic premium gadget placeholder
+  }
+
+  // Translate legacy/broken Google Merchandise Store links to the active GCS bucket
+  if (url.includes('shop.googlemerchandisestore.com/store/')) {
+    const filename = url.substring(url.lastIndexOf('/') + 1)
+    return `https://storage.googleapis.com/github-repo/embeddings/getting_started_embeddings/gms_images/${filename}`
+  }
+
+  if (url.startsWith('http')) return url
+  return 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=300'
 }
 
 // Trigger hidden file picker
@@ -347,7 +370,7 @@ const submitMessage = async () => {
   
   messages.value.push(userMsg)
   cancelImage()
-  await scrollToBottom()
+  await scrollToBottom(true)
   
   try {
     let responseData
@@ -393,7 +416,7 @@ const submitMessage = async () => {
       const json = await response.json()
       responseData = {
         text: json.text,
-        products: [] // Text API is basic, but ADK answers directly in context
+        products: json.products || []
       }
     }
     
@@ -580,7 +603,7 @@ const submitMessage = async () => {
   width: 100%;
   max-width: 85%;
   animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  margin-bottom: 48px; /* spacious separation between Q&A rounds */
+  margin-bottom: 24px; /* Reduced vertical spacing on desktop */
 }
 
 .user-row {
@@ -680,10 +703,15 @@ const submitMessage = async () => {
 }
 
 .user-row .message-bubble {
-  color: var(--google-blue-text) !important;
-  border-right: none !important;
-  padding: 0 !important;
-  text-align: right;
+  background-color: var(--border-color-light) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color-light) !important;
+  border-radius: 18px 18px 4px 18px !important; /* Elegant rounded bubble shape */
+  padding: 12px 18px !important;
+  text-align: left;
+  display: inline-block !important;
+  max-width: 100% !important;
+  box-shadow: var(--shadow-subtle) !important;
 }
 
 .agent-row .message-bubble {
@@ -742,6 +770,7 @@ const submitMessage = async () => {
 /* Product grid cards inside chat */
 .product-results-container {
   width: 100%;
+  margin-top: 24px; /* Give breathing room between text and carousel */
 }
 
 .product-carousel {
@@ -769,7 +798,7 @@ const submitMessage = async () => {
 }
 
 .product-img-wrapper {
-  height: 130px;
+  height: 200px; /* Much larger image canvas */
   background-color: var(--card-inner-bg);
   display: flex;
   align-items: center;
@@ -780,9 +809,9 @@ const submitMessage = async () => {
 }
 
 .product-img-wrapper img {
-  max-width: 80%;
-  max-height: 80%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cover the entire container, removing side color blocks! */
   transition: transform 0.3s ease;
 }
 
@@ -791,59 +820,44 @@ const submitMessage = async () => {
 }
 
 .product-info {
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  gap: 6px;
+  gap: 4px;
 }
 
 .product-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px; /* Clean, smaller title */
+  font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.2px;
 }
 
 .product-price {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--google-blue-text);
+  font-size: 13px; /* Elegant, matching font size */
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .product-desc {
-  font-size: 12px;
+  font-size: 11px; /* Subtle, small description */
   color: var(--text-secondary);
-  height: 36px;
+  height: 32px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.5;
+  line-height: 1.45;
+  margin-top: 2px;
+  opacity: 0.8;
 }
 
 .buy-btn {
-  margin-top: 10px;
-  background-color: var(--google-blue);
-  color: white;
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 8px 16px;
-  font-family: var(--font-family);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
-}
-
-.buy-btn:hover {
-  background-color: #1557b0;
-}
-
-.buy-btn:active {
-  transform: scale(0.97);
+  display: none !important; /* Hide buy button for now */
 }
 
 .bottom-input-container {
@@ -1179,6 +1193,7 @@ const submitMessage = async () => {
   .message-row {
     max-width: 100%;
     gap: 12px;
+    margin-bottom: 16px; /* Tighter spacing on mobile */
   }
   
   .message-bubble {

@@ -54,6 +54,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     text: str
     session_id: str
+    products: list = []
 
 # Helper to manage chat history in Firestore
 def get_session_history(session_id: str) -> list:
@@ -88,10 +89,12 @@ async def chat(request: ChatRequest, user_uid: str = Depends(get_current_user_ui
 
     try:
         # Run orchestrator
-        agent_reply = run_text_chat(user_query, history)
+        agent_res = run_text_chat(user_query, history)
+        agent_reply = agent_res["text"]
+        products = agent_res["products"]
     except GuardrailException as ge:
         # If blocked by the Pre-LLM safety guardrail
-        return ChatResponse(text=str(ge), session_id=session_id)
+        return ChatResponse(text=str(ge), session_id=session_id, products=[])
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent execution failed: {str(e)}")
 
@@ -100,7 +103,7 @@ async def chat(request: ChatRequest, user_uid: str = Depends(get_current_user_ui
     history.append({"role": "model", "content": agent_reply})
     save_session_history(session_id, history, user_uid)
 
-    return ChatResponse(text=agent_reply, session_id=session_id)
+    return ChatResponse(text=agent_reply, session_id=session_id, products=products)
 
 @app.post("/visual-search")
 async def visual_search(
