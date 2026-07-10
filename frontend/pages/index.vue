@@ -1,5 +1,5 @@
 <template>
-  <div class="assistant-page">
+  <div :class="['assistant-page', isDarkMode ? 'theme-dark' : 'theme-light']">
     <!-- Header -->
     <header class="navbar">
       <div class="navbar-container">
@@ -14,9 +14,16 @@
           </svg>
           <span class="brand-title">Store Assistant</span>
         </div>
-        <div class="connection-status">
-          <span class="status-dot animate-pulse"></span>
-          <span class="status-text">Online</span>
+        <div class="navbar-actions">
+          <button class="theme-toggle-btn" @click="toggleTheme" title="Alternar tema">
+            <svg v-if="!isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-toggle-icon">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+            </svg>
+            <svg v-if="isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-toggle-icon">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41-1.41"/>
+            </svg>
+          </button>
         </div>
       </div>
     </header>
@@ -212,6 +219,12 @@ import { getAuth, signInAnonymously, connectAuthEmulator } from 'firebase/auth'
 // 1. Config & Runtime Env
 const config = useRuntimeConfig()
 const backendUrl = "/api"
+
+// Shared Theme State (Default to dark mode)
+const isDarkMode = useState('darkMode', () => true)
+const toggleTheme = () => {
+  isDarkMode.value = !isDarkMode.value
+}
 
 // State Variables
 const sessionId = ref('')
@@ -477,28 +490,34 @@ const submitMessage = async () => {
   line-height: 1.2;
 }
 
-.connection-status {
+.navbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background-color: var(--google-green-soft);
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
+  gap: 16px;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
+.theme-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background-color: var(--google-green);
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-.status-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--google-green-text);
-  letter-spacing: 0.2px;
+.theme-toggle-btn:hover {
+  background-color: var(--border-color-light);
+  color: var(--text-primary);
+}
+
+.theme-toggle-icon {
+  width: 20px;
+  height: 20px;
 }
 
 /* Chat Workspace */
@@ -647,7 +666,9 @@ const submitMessage = async () => {
 .user-row .message-bubble {
   background-color: var(--google-blue-soft);
   color: var(--google-blue-text);
+  border: 1px solid var(--user-bubble-border);
   border-top-right-radius: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .agent-row .message-bubble {
@@ -735,12 +756,13 @@ const submitMessage = async () => {
 
 .product-img-wrapper {
   height: 130px;
-  background-color: #F8F9FA;
+  background-color: var(--card-inner-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid var(--border-color-light);
   overflow: hidden;
+  transition: background-color 0.3s ease;
 }
 
 .product-img-wrapper img {
@@ -810,15 +832,15 @@ const submitMessage = async () => {
   transform: scale(0.97);
 }
 
-/* Floating Bottom Input Area */
 .bottom-input-container {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 35%, #ffffff 100%);
+  background: var(--theme-gradient);
   padding: 24px;
   z-index: 90;
+  transition: background 0.3s ease;
 }
 
 .input-bar-wrapper {
@@ -1017,13 +1039,14 @@ const submitMessage = async () => {
 }
 
 .modal-product-detail {
-  background-color: #F8F9FA;
+  background-color: var(--card-inner-bg);
   border-radius: var(--radius-md);
   padding: 16px;
   text-align: left;
   font-size: 14px;
   border: 1px solid var(--border-color-light);
   margin-bottom: 20px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .modal-prod-title {
