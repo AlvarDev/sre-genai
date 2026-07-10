@@ -43,13 +43,10 @@
                   <stop offset="90%" stop-color="#FC413D" />
                 </linearGradient>
               </defs>
-              <path fill="url(#gemini-gradient)" d="M12 2C12 2 12.3 9 18.5 12.2C18.5 12.2 12 12 12 22C12 22 11.7 15 5.5 11.8C5.5 11.8 12 12 12 2Z" />
+              <path fill="url(#gemini-gradient)" d="M12 2c0 5.5-4.5 10-10 10 5.5 0 10 4.5 10 10 0-5.5 4.5-10 10-10-5.5 0-10-4.5-10-10z" />
             </svg>
           </div>
           <h2 class="gemini-greeting">Olá! Como posso ajudar você hoje?</h2>
-          <p class="hero-subtitle">Pergunte-me sobre os celulares Pixel, fones de ouvido, termostatos Nest ou roupas da marca Google.</p>
-          
-
         </div>
 
         <!-- Messages List -->
@@ -840,8 +837,9 @@ const submitMessage = async () => {
 .product-price {
   font-size: 13px; /* Elegant, matching font size */
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--google-blue-text); /* Restored blue accent color */
 }
+
 
 .product-desc {
   font-size: 11px; /* Subtle, small description */
