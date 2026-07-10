@@ -1,20 +1,18 @@
 import os
-from google.adk.agents.llm_agent import Agent
 from google import genai
 from google.genai import types
-import vertexai
-from vertexai.generative_models import GenerativeModel, Content, Part
 from agent.search import search_catalog_tool, search_catalog_by_image_tool
 from agent.guardrail import validate_user_input, filter_retrieved_products
 
-# 1. Initialize Vertex AI
+# 1. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
-location = os.getenv("LOCATION", "us-central1")
+location = os.getenv("LOCATION", "us")
 
 if not project_id:
     raise RuntimeError("PROJECT_ID environment variable is required but not set.")
 
-vertexai.init(project=project_id, location=location)
+# Initialize the new Google GenAI Client globally for chat generation
+client = genai.Client(vertexai=True, project=project_id, location=location)
 
 # Load System Prompt
 prompt_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "system_prompt.txt")
@@ -35,16 +33,6 @@ def search_store_catalog(query_text: str) -> str:
     
     return clean_results
 
-# 3. Instantiate the ADK Agent
-# This agent handles standard conversational and text-based searches using Gemini 3.1 Flash.
-core_agent = Agent(
-    model=os.getenv("CORE_MODEL", "gemini-3.1-flash"),
-    name="google_store_assistant",
-    description="Virtual assistant for the Google Store catalog.",
-    instruction=system_instruction,
-    tools=[search_store_catalog]
-)
-
 def run_text_chat(user_query: str, chat_history: list) -> str:
     """
     Processes a text query. Validates input, updates history, and returns the response.
@@ -52,11 +40,31 @@ def run_text_chat(user_query: str, chat_history: list) -> str:
     # 1. Pre-LLM Guardrail check
     safe_query = validate_user_input(user_query)
     
-    # 2. Format history for ADK agent
-    # In a production app, ADK manages session history. 
-    # For this service gateway, we can run the agent with the query.
-    response = core_agent.run(safe_query)
-    return response.text if hasattr(response, "text") else str(response)
+    # 2. Convert incoming history to Google GenAI Content format
+    formatted_history = []
+    for msg in chat_history:
+        role = "user" if msg["role"] == "user" else "model"
+        formatted_history.append(
+            types.Content(
+                role=role,
+                parts=[types.Part.from_text(text=msg["content"])]
+            )
+        )
+    
+    # 3. Create a chat session with automatic function calling enabled
+    chat = client.chats.create(
+        model=os.getenv("CORE_MODEL", "gemini-3.1-flash-lite"),
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            tools=[search_store_catalog]
+        ),
+        history=formatted_history
+    )
+    
+    # 4. Execute chat request
+    response = chat.send_message(safe_query)
+    
+    return response.text
 
 def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
     """
@@ -68,8 +76,8 @@ def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
     """
     # 1. Generate Image Embedding Vector
     # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI 'us' multi-region
-    client = genai.Client(vertexai=True, project=project_id, location="us")
-    result = client.models.embed_content(
+    us_client = genai.Client(vertexai=True, project=project_id, location="us")
+    result = us_client.models.embed_content(
         model="gemini-embedding-2",
         contents=[
             types.Part.from_bytes(
@@ -97,8 +105,10 @@ def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
         "Com base nos PRODUTOS fornecidos acima, responda ao usuário em português brasileiro sobre o que você encontrou."
     )
     
-    model = GenerativeModel(os.getenv("CORE_MODEL", "gemini-3.1-flash"))
-    response = model.generate_content(grounding_prompt)
+    response = client.models.generate_content(
+        model=os.getenv("CORE_MODEL", "gemini-3.1-flash-lite"),
+        contents=grounding_prompt
+    )
     response_text = response.text
 
     # 5. Extract individual products for structured UI rendering

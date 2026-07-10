@@ -1,9 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   runtimeConfig: {
+    // Private keys (only available server-side)
+    backendUrl: process.env.NUXT_BACKEND_URL || "http://localhost:8080",
     public: {
-      // API Backend URL (Cloud Run or local)
-      backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL || "http://localhost:8080",
       // Firebase Emulator Endpoint (if running local development)
       firebaseAuthEmulatorUrl: process.env.NUXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL || "",
       // Standard Firebase Project keys

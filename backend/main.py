@@ -1,10 +1,11 @@
 import os
 import uuid
-from fastapi import FastAPI, Header, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, Header, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, auth
 from agent.orchestrator import run_text_chat, run_visual_search
 from agent.guardrail import GuardrailException
 
@@ -14,6 +15,24 @@ if not firebase_admin._apps:
 
 from google.cloud import firestore as gcloud_firestore
 db = gcloud_firestore.Client(database="sre-genai")
+
+# HTTP Bearer Security scheme for Firebase ID Tokens
+security = HTTPBearer()
+
+def get_current_user_uid(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """
+    Decrypts and validates the Firebase ID Token (JWT) sent in the Authorization header.
+    Returns the user's UID or raises 401 Unauthorized if invalid/expired.
+    """
+    token = credentials.credentials
+    try:
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid or expired authentication token: {str(e)}"
+        )
 
 # 2. FastAPI Setup
 app = FastAPI(title="SRE GenAI Agent Backend")
@@ -60,7 +79,7 @@ def save_session_history(session_id: str, messages: list, user_uid: str):
 
 # 4. Endpoints
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, x_user_uid: str = Header(default="anonymous_user")):
+async def chat(request: ChatRequest, user_uid: str = Depends(get_current_user_uid)):
     session_id = request.session_id or str(uuid.uuid4())
     user_query = request.message
 
@@ -79,7 +98,7 @@ async def chat(request: ChatRequest, x_user_uid: str = Header(default="anonymous
     # Update and save history
     history.append({"role": "user", "content": user_query})
     history.append({"role": "model", "content": agent_reply})
-    save_session_history(session_id, history, x_user_uid)
+    save_session_history(session_id, history, user_uid)
 
     return ChatResponse(text=agent_reply, session_id=session_id)
 
@@ -88,7 +107,7 @@ async def visual_search(
     image: UploadFile = File(...),
     message: str = Form(default=""),
     session_id: str = Form(default=""),
-    x_user_uid: str = Header(default="anonymous_user")
+    user_uid: str = Depends(get_current_user_uid)
 ):
     active_session_id = session_id or str(uuid.uuid4())
     
@@ -105,7 +124,7 @@ async def visual_search(
     history = get_session_history(active_session_id)
     history.append({"role": "user", "content": f"[Buscou por Imagem] {message}".strip()})
     history.append({"role": "model", "content": search_result["text"]})
-    save_session_history(active_session_id, history, x_user_uid)
+    save_session_history(active_session_id, history, user_uid)
 
     return {
         "text": search_result["text"],

@@ -145,7 +145,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator } from 'firebase/auth'
 
 // 1. Config & Runtime Env
 const config = useRuntimeConfig()
-const backendUrl = config.public.backendUrl
+const backendUrl = "/api"
 
 // State Variables
 const sessionId = ref('')
@@ -156,6 +156,9 @@ const isTyping = ref(false)
 const selectedImage = ref(null)
 const selectedImagePreview = ref(null)
 const activePurchase = ref(null)
+
+// Auth Instance
+let authInstance = null
 
 // UI Refs
 const historyContainer = ref(null)
@@ -172,15 +175,15 @@ const initAuth = async () => {
   
   try {
     const app = initializeApp(firebaseConfig)
-    const auth = getAuth(app)
+    authInstance = getAuth(app)
     
     // Connect to Auth emulator if configured in local development
     if (config.public.firebaseAuthEmulatorUrl) {
       console.log(`Connecting to Firebase Auth emulator: ${config.public.firebaseAuthEmulatorUrl}`)
-      connectAuthEmulator(auth, config.public.firebaseAuthEmulatorUrl)
+      connectAuthEmulator(authInstance, config.public.firebaseAuthEmulatorUrl)
     }
     
-    const userCredential = await signInAnonymously(auth)
+    const userCredential = await signInAnonymously(authInstance)
     userUid.value = userCredential.user.uid
     console.log(`Authenticated silently with UID: ${userUid.value}`)
   } catch (err) {
@@ -286,9 +289,12 @@ const submitMessage = async () => {
   try {
     let responseData
     
-    // Headers to isolate session
+    // Get Firebase ID Token dynamically to authorize the request
+    const token = authInstance && authInstance.currentUser ? await authInstance.currentUser.getIdToken() : ''
+    
+    // Headers to isolate session and verify identity
     const headers = {
-      'x-user-uid': userUid.value
+      'Authorization': `Bearer ${token}`
     }
     
     if (imageFile) {

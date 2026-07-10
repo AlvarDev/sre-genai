@@ -14,18 +14,19 @@ build:
       context: catalog-mcp
       docker:
         dockerfile: Dockerfile
+    - image: frontend-service
+      context: frontend
+      docker:
+        dockerfile: Dockerfile
 manifests:
   rawYaml:
     - k8s/backend.yaml
     - k8s/catalog-mcp.yaml
+    - k8s/frontend.yaml
 deploy:
   kubectl: {}
 portForward:
   - resourceType: Service
-    resourceName: backend-service
-    port: 8080
-    localPort: 8080
-  - resourceType: Service
-    resourceName: catalog-mcp-service
-    port: 8001
-    localPort: 8001
+    resourceName: frontend-service
+    port: 3000
+    localPort: 3000

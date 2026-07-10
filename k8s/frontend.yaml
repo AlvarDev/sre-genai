@@ -25,8 +25,8 @@ spec:
               value: "3000"
             - name: NUXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL
               value: "http://localhost:9099"
-            - name: NUXT_PUBLIC_BACKEND_URL
-              value: "http://localhost:8080"
+            - name: NUXT_BACKEND_URL
+              value: "http://backend-service:8080"
 ---
 apiVersion: v1
 kind: Service
