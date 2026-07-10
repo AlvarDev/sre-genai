@@ -19,7 +19,20 @@ if not project_id:
 db = firestore.Client(database="sre-genai")
 
 # 3. Initialize the FastMCP Server
-mcp = FastMCP("Catalog Search MCP Service")
+from mcp.server.transport_security import TransportSecuritySettings
+
+mcp = FastMCP(
+    "Catalog Search MCP Service",
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=[
+            "localhost",
+            "localhost:*",
+            "127.0.0.1",
+            "127.0.0.1:*",
+            "*.run.app"
+        ]
+    )
+)
 
 # 4. Tool 1: Text-based catalog search
 @mcp.tool()
