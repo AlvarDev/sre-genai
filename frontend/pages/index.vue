@@ -1,140 +1,206 @@
 <template>
-  <div class="chat-container">
+  <div class="assistant-page">
     <!-- Header -->
-    <header class="store-header">
-      <div class="logo-container">
-        <span class="g-blue">G</span>
-        <span class="g-red">o</span>
-        <span class="g-yellow">o</span>
-        <span class="g-blue">g</span>
-        <span class="g-green">l</span>
-        <span class="g-red">e</span>
-        <span class="header-subtitle">Store Assistant</span>
-      </div>
-      <div class="connection-status">
-        <span class="status-dot"></span>
-        <span class="status-text">Online</span>
+    <header class="navbar">
+      <div class="navbar-container">
+        <div class="brand-logo">
+          <svg class="google-wordmark-logo" viewBox="0 0 74 24" width="74" height="24">
+            <path fill="#3186FF" d="M9.24 8.19v2.46h5.88c-.18 1.38-.64 2.39-1.34 3.1-.86.86-2.2 1.8-4.54 1.8-3.62 0-6.45-2.92-6.45-6.54s2.83-6.54 6.45-6.54c1.95 0 3.38.77 4.43 1.76L15.4 2.5C13.94 1.08 11.98 0 9.24 0 4.28 0 .11 4.04.11 9s4.17 9 9.13 9c2.68 0 4.7-.88 6.28-2.52 1.62-1.62 2.13-3.91 2.13-5.75 0-.57-.04-1.1-.13-1.54H9.24z" />
+            <path fill="#FC413D" d="M25 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z" />
+            <path fill="#FEC700" d="M38 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z" />
+            <path fill="#3186FF" d="M53.58 7.49h-.09c-.57-.68-1.67-1.3-3.06-1.3C47.53 6.19 45 8.72 45 12c0 3.26 2.53 5.81 5.43 5.81 1.39 0 2.49-.62 3.06-1.32h.09v.81c0 2.22-1.19 3.41-3.1 3.41-1.56 0-2.53-1.12-2.93-2.07l-2.22.92c.64 1.54 2.33 3.43 5.15 3.43 2.99 0 5.52-1.76 5.52-6.05V6.49h-2.42v1zm-2.93 8.03c-1.76 0-3.1-1.5-3.1-3.52 0-2.05 1.34-3.52 3.1-3.52 1.74 0 3.1 1.5 3.1 3.54.01 2.03-1.36 3.5-3.1 3.5z" />
+            <path fill="#00AF57" d="M58 .24h2.51v17.57H58z" />
+            <path fill="#FC413D" d="M68.26 15.52c-1.3 0-2.22-.59-2.82-1.76l7.77-3.21-.26-.66c-.48-1.3-1.96-3.7-4.97-3.7-2.99 0-5.48 2.35-5.48 5.81 0 3.26 2.46 5.81 5.76 5.81 2.66 0 4.2-1.63 4.84-2.57l-1.98-1.32c-.66.96-1.56 1.6-2.86 1.6zm-.18-7.15c1.03 0 1.91.53 2.2 1.28l-5.25 2.17c0-2.44 1.73-3.45 3.05-3.45z" />
+          </svg>
+          <span class="brand-title">Store Assistant</span>
+        </div>
+        <div class="connection-status">
+          <span class="status-dot animate-pulse"></span>
+          <span class="status-text">Online</span>
+        </div>
       </div>
     </header>
 
-    <!-- Message History Area -->
-    <main class="chat-history" ref="historyContainer">
-      <div class="welcome-box" v-if="messages.length === 0">
-        <div class="welcome-icon">💬</div>
-        <h2>Olá! Como posso ajudar você hoje?</h2>
-        <p>Pergunte-me sobre os celulares Pixel, fones de ouvido, termostatos Nest ou roupas da marca Google.</p>
-        <div class="suggestions">
-          <button @click="sendSuggestion('Você tem o celular Pixel 9 Pro?')">"Você tem o Pixel 9 Pro?"</button>
-          <button @click="sendSuggestion('Qual o preço do Nest Thermostat?')">"Qual o preço do Nest?"</button>
-          <button @click="triggerImageUpload">"Buscar por Imagem 📷"</button>
-        </div>
-      </div>
-
-      <div 
-        v-for="(msg, index) in messages" 
-        :key="index" 
-        :class="['message-row', msg.role === 'user' ? 'user-row' : 'agent-row']"
-      >
-        <!-- Message Panel -->
-        <div class="message-bubble">
-          <!-- Image attachment if user sent an image -->
-          <div class="image-attachment" v-if="msg.imageUrl">
-            <img :src="msg.imageUrl" alt="Visual query preview" />
+    <!-- Main Chat Workspace -->
+    <main class="chat-workspace">
+      <div class="chat-feed-container" ref="historyContainer">
+        
+        <!-- Welcome Hero Section -->
+        <div class="welcome-hero" v-if="messages.length === 0">
+          <div class="welcome-avatar-wrapper">
+            <svg viewBox="0 0 24 24" class="gemini-logo-icon">
+              <defs>
+                <linearGradient id="gemini-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3186FF" />
+                  <stop offset="45%" stop-color="#9B51E0" />
+                  <stop offset="90%" stop-color="#FC413D" />
+                </linearGradient>
+              </defs>
+              <path fill="url(#gemini-gradient)" d="M12 2C12 2 12.3 9 18.5 12.2C18.5 12.2 12 12 12 22C12 22 11.7 15 5.5 11.8C5.5 11.8 12 12 12 2Z" />
+            </svg>
           </div>
+          <h2 class="gemini-greeting">Olá! Como posso ajudar você hoje?</h2>
+          <p class="hero-subtitle">Pergunte-me sobre os celulares Pixel, fones de ouvido, termostatos Nest ou roupas da marca Google.</p>
           
-          <div class="message-text" v-html="formatText(msg.content)"></div>
-          
-          <!-- Structured Product Carousel if attached to message -->
-          <div class="product-carousel" v-if="msg.products && msg.products.length > 0">
-            <div 
-              v-for="prod in msg.products" 
-              :key="prod.parent_sku" 
-              class="product-card"
-            >
-              <div class="product-img-wrapper">
-                <!-- If placeholder image URL, render a nice CSS mockup container -->
-                <img :src="getValidImageUrl(prod.img_url)" :alt="prod.title" />
+
+        </div>
+
+        <!-- Messages List -->
+        <div class="messages-list" v-else>
+          <div 
+            v-for="(msg, index) in messages" 
+            :key="index" 
+            :class="['message-row', msg.role === 'user' ? 'user-row' : 'agent-row']"
+          >
+            <!-- Agent Avatar -->
+            <div class="avatar agent-avatar" v-if="msg.role === 'agent'">
+              <svg viewBox="0 0 24 24" class="avatar-svg">
+                <path fill="var(--google-blue)" d="M21.35 11.1H12v2.7h5.35C17 15.35 14.85 16.5 12 16.5c-2.9 0-5.25-2.35-5.25-5.25S9.1 6 12 6c1.45 0 2.75.55 3.75 1.5l2-2C16.05 3.8 14.15 3 12 3 7.05 3 3 7.05 3 12s4.05 9 9 9c5.2 0 8.65-3.65 8.65-8.8 0-.6-.05-1.2-.3-1.6z"/>
+              </svg>
+            </div>
+
+            <!-- Message Bubble -->
+            <div class="message-bubble-wrapper">
+              <div class="message-bubble">
+                <!-- Image attachment if user sent an image -->
+                <div class="image-attachment" v-if="msg.imageUrl">
+                  <img :src="msg.imageUrl" alt="Visual query preview" />
+                </div>
+                
+                <div class="message-text" v-html="formatText(msg.content)"></div>
               </div>
-              <div class="product-info">
-                <h4 class="product-title">{{ prod.title }}</h4>
-                <div class="product-price">R$ {{ parseFloat(prod.retail_price).toFixed(2) }}</div>
-                <p class="product-desc">{{ prod.shortdesc }}</p>
-                <button class="buy-btn" @click="simulatePurchase(prod)">
-                  Comprar Agora
-                </button>
+
+              <!-- Product Grid/Carousel Attachment -->
+              <div class="product-results-container" v-if="msg.products && msg.products.length > 0">
+                <div class="product-carousel">
+                  <div 
+                    v-for="prod in msg.products" 
+                    :key="prod.parent_sku" 
+                    class="product-card"
+                  >
+                    <div class="product-img-wrapper">
+                      <img :src="getValidImageUrl(prod.img_url)" :alt="prod.title" />
+                    </div>
+                    <div class="product-info">
+                      <h4 class="product-title" :title="prod.title">{{ prod.title }}</h4>
+                      <div class="product-price">R$ {{ parseFloat(prod.retail_price).toFixed(2) }}</div>
+                      <p class="product-desc">{{ prod.shortdesc }}</p>
+                      <button class="buy-btn" @click="simulatePurchase(prod)">
+                        Comprar Agora
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- User Avatar -->
+            <div class="avatar user-avatar" v-if="msg.role === 'user'">
+              <span class="user-initial">U</span>
+            </div>
+          </div>
+
+          <!-- Loading / Typing Indicator -->
+          <div class="message-row agent-row" v-if="isTyping">
+            <div class="avatar agent-avatar">
+              <svg viewBox="0 0 24 24" class="avatar-svg">
+                <path fill="var(--google-blue)" d="M21.35 11.1H12v2.7h5.35C17 15.35 14.85 16.5 12 16.5c-2.9 0-5.25-2.35-5.25-5.25S9.1 6 12 6c1.45 0 2.75.55 3.75 1.5l2-2C16.05 3.8 14.15 3 12 3 7.05 3 3 7.05 3 12s4.05 9 9 9c5.2 0 8.65-3.65 8.65-8.8 0-.6-.05-1.2-.3-1.6z"/>
+              </svg>
+            </div>
+            <div class="message-bubble-wrapper">
+              <div class="message-bubble typing-bubble">
+                <div class="typing-indicator">
+                  <span></span><span></span><span></span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Loading / Typing Indicator -->
-      <div class="message-row agent-row" v-if="isTyping">
-        <div class="message-bubble typing-bubble">
-          <div class="typing-indicator">
-            <span></span><span></span><span></span>
-          </div>
-        </div>
       </div>
     </main>
 
-    <!-- Visual Search Image Preview Bar -->
-    <div class="preview-bar" v-if="selectedImage">
-      <div class="preview-img-container">
-        <img :src="selectedImagePreview" alt="Selected image" />
-        <button class="remove-preview-btn" @click="cancelImage">✕</button>
-      </div>
-      <div class="preview-text">
-        Pronto para buscar com esta imagem. Adicione um comentário abaixo se desejar.
-      </div>
-    </div>
+    <!-- Bottom Input Container & Overlay -->
+    <div class="bottom-input-container">
+      <div class="input-bar-wrapper">
+        
+        <!-- Image Preview Bar (Visual Search) -->
+        <transition name="slide-up">
+          <div class="preview-bar" v-if="selectedImage">
+            <div class="preview-img-container">
+              <img :src="selectedImagePreview" alt="Selected image" />
+              <button class="remove-preview-btn" @click="cancelImage">✕</button>
+            </div>
+            <div class="preview-text">
+              <strong>Imagem pronta.</strong> Escreva uma mensagem ou envie para buscar produtos parecidos.
+            </div>
+          </div>
+        </transition>
 
-    <!-- Input Bar -->
-    <footer class="input-area">
-      <!-- Hidden File input for Visual Search -->
-      <input 
-        type="file" 
-        ref="imageInput" 
-        accept="image/*" 
-        style="display: none" 
-        @change="onImageSelected"
-      />
-      
-      <button class="action-btn file-btn" @click="triggerImageUpload" title="Buscar por imagem">
-        📷
-      </button>
-      
-      <input 
-        type="text" 
-        v-model="inputText" 
-        @keydown.enter="submitMessage"
-        placeholder="Escreva sua mensagem..."
-        :disabled="isTyping"
-        ref="messageInput"
-      />
-      
-      <button class="action-btn send-btn" @click="submitMessage" :disabled="!inputText.trim() && !selectedImage || isTyping">
-        ➤
-      </button>
-    </footer>
-
-    <!-- Mock Purchase Success Modal -->
-    <div class="purchase-modal" v-if="activePurchase">
-      <div class="modal-content">
-        <div class="modal-success-icon">✓</div>
-        <h3>Simulação de Compra Efetuada!</h3>
-        <p>Você adquiriu o produto:</p>
-        <div class="modal-product-detail">
-          <strong>{{ activePurchase.title }}</strong><br/>
-          SKU: <code>{{ activePurchase.parent_sku }}</code><br/>
-          Valor: <strong>R$ {{ parseFloat(activePurchase.retail_price).toFixed(2) }}</strong>
+        <!-- Main Pill Input Bar -->
+        <div class="input-bar">
+          <!-- Hidden File input -->
+          <input 
+            type="file" 
+            ref="imageInput" 
+            accept="image/*" 
+            style="display: none" 
+            @change="onImageSelected"
+          />
+          
+          <button class="input-action-btn file-btn" @click="triggerImageUpload" title="Buscar por imagem">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+            </svg>
+          </button>
+          
+          <input 
+            type="text" 
+            v-model="inputText" 
+            @keydown.enter="submitMessage"
+            placeholder="Escreva sua pergunta sobre a Google Store..."
+            :disabled="isTyping"
+            ref="messageInput"
+          />
+          
+          <button class="input-action-btn send-btn" @click="submitMessage" :disabled="!inputText.trim() && !selectedImage || isTyping" title="Enviar mensagem">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
         </div>
-        <p class="modal-sre-notice">
-          ℹ️ <strong>Métrica SRE</strong>: Esta ação simula um checkout com HTTP 200 OK. Nenhuma cobrança real foi efetuada.
+
+        <p class="input-notice">
+          Demonstração de Inteligência Artificial integrada com Google Cloud Operations Suite & Firebase.
         </p>
-        <button class="modal-close-btn" @click="activePurchase = null">Fechar</button>
       </div>
     </div>
+
+    <!-- Purchase Simulation Modal -->
+    <transition name="fade">
+      <div class="purchase-modal" v-if="activePurchase" @click.self="activePurchase = null">
+        <div class="modal-content">
+          <div class="modal-success-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32">
+              <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+          </div>
+          <h3>Simulação de Compra Efetuada!</h3>
+          <p>Você adquiriu o seguinte item da Google Store:</p>
+          
+          <div class="modal-product-detail">
+            <strong class="modal-prod-title">{{ activePurchase.title }}</strong>
+            <div class="modal-prod-sku">SKU: <code>{{ activePurchase.parent_sku }}</code></div>
+            <div class="modal-prod-price">Valor: <strong>R$ {{ parseFloat(activePurchase.retail_price).toFixed(2) }}</strong></div>
+          </div>
+          
+          <p class="modal-sre-notice">
+            ℹ️ <strong>Métrica SRE</strong>: Esta ação simula um checkout com HTTP 200 OK. Nenhuma cobrança real foi efetuada. Os logs de monitoramento foram reportados para o Cloud Operations Suite.
+          </p>
+          <button class="modal-close-btn" @click="activePurchase = null">Fechar Janela</button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -360,62 +426,64 @@ const submitMessage = async () => {
 </script>
 
 <style scoped>
-/* Main Chat Container CSS */
-.chat-container {
-  height: 100vh;
+/* Main Layout */
+.assistant-page {
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-color);
-  max-width: 600px;
-  margin: 0 auto;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.05);
-  border-left: 1px solid var(--border-color);
-  border-right: 1px solid var(--border-color);
+  min-height: 100vh;
+  background-color: var(--bg-color-alt);
 }
 
-/* Header */
-.store-header {
+/* Navbar */
+.navbar {
+  position: sticky;
+  top: 0;
   height: var(--header-height);
   background-color: var(--panel-color);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color-light);
+  box-shadow: var(--shadow-subtle);
   display: flex;
   align-items: center;
+  z-index: 100;
+}
+
+.navbar-container {
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
   justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
-  z-index: 10;
+  align-items: center;
 }
 
-.logo-container {
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.5px;
+.brand-logo {
   display: flex;
   align-items: center;
-  gap: 2px;
 }
 
-.g-blue { color: var(--google-blue); }
-.g-red { color: var(--google-red); }
-.g-yellow { color: var(--google-yellow); }
-.g-green { color: var(--google-green); }
+.google-wordmark-logo {
+  flex-shrink: 0;
+  display: block;
+}
 
-.header-subtitle {
+.brand-title {
+  font-size: 18px;
   font-weight: 400;
-  font-size: 14px;
   color: var(--text-secondary);
-  margin-left: 8px;
   border-left: 1px solid var(--border-color);
-  padding-left: 8px;
+  padding-left: 12px;
+  margin-left: 12px;
+  line-height: 1.2;
 }
 
 .connection-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: #E6F4EA;
-  padding: 4px 10px;
-  border-radius: 16px;
+  gap: 8px;
+  background-color: var(--google-green-soft);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
 }
 
 .status-dot {
@@ -423,204 +491,280 @@ const submitMessage = async () => {
   height: 8px;
   border-radius: 50%;
   background-color: var(--google-green);
+  display: inline-block;
 }
 
 .status-text {
-  font-size: 11px;
-  font-weight: 500;
-  color: #137333;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--google-green-text);
+  letter-spacing: 0.2px;
 }
 
-/* Chat History Area */
-.chat-history {
+/* Chat Workspace */
+.chat-workspace {
   flex-grow: 1;
-  overflow-y: auto;
-  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  overflow-y: visible;
 }
 
-/* Welcome Box */
-.welcome-box {
+.chat-feed-container {
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: 40px 24px 160px 24px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+/* Welcome Hero Section */
+.welcome-hero {
   text-align: center;
   margin: auto 0;
-  padding: 20px;
+  padding: 40px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 16px;
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.welcome-icon {
-  font-size: 48px;
+.welcome-avatar-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(49, 134, 255, 0.08) 0%, rgba(155, 81, 224, 0.08) 50%, rgba(252, 65, 61, 0.08) 100%);
+  border: 1px solid rgba(155, 81, 224, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(155, 81, 224, 0.05);
 }
 
-.welcome-box h2 {
+.gemini-logo-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.gemini-greeting {
+  font-size: 36px;
   font-weight: 500;
-  font-size: 22px;
-  color: var(--text-primary);
+  background: linear-gradient(74deg, #3186FF 0%, #9B51E0 55%, #FC413D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.8px;
+  padding-bottom: 4px;
 }
 
-.welcome-box p {
-  font-size: 14px;
+.hero-subtitle {
+  font-size: 16px;
   color: var(--text-secondary);
-  max-width: 320px;
-  line-height: 1.5;
+  max-width: 480px;
+  line-height: 1.6;
 }
 
-.suggestions {
+
+
+/* Messages List */
+.messages-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  max-width: 280px;
-  margin-top: 10px;
+  gap: 32px;
 }
 
-.suggestions button {
-  background-color: var(--panel-color);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 10px 16px;
-  font-family: var(--font-family);
-  font-size: 13px;
-  color: var(--google-blue);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.suggestions button:hover {
-  background-color: #f1f3f4;
-  border-color: #cbd0d4;
-  transform: translateY(-1px);
-}
-
-/* Message Rows */
 .message-row {
   display: flex;
+  gap: 16px;
   width: 100%;
+  max-width: 85%;
+  animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .user-row {
+  align-self: flex-end;
   justify-content: flex-end;
 }
 
 .agent-row {
+  align-self: flex-start;
   justify-content: flex-start;
 }
 
-.message-bubble {
-  max-width: 85%;
-  padding: 12px 16px;
-  border-radius: 18px;
-  line-height: 1.5;
+/* Avatars */
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.agent-avatar {
+  background-color: var(--panel-color);
+  border: 1px solid var(--border-color-light);
+  box-shadow: var(--shadow-subtle);
+}
+
+.avatar-svg {
+  width: 20px;
+  height: 20px;
+}
+
+.user-avatar {
+  background-color: var(--google-blue);
+  color: white;
+  font-weight: 700;
   font-size: 14px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.user-initial {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Bubbles */
+.message-bubble-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 100%;
+}
+
+.message-bubble {
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  line-height: 1.6;
+  font-size: 15px;
 }
 
 .user-row .message-bubble {
-  background-color: var(--google-blue);
-  color: white;
-  border-bottom-right-radius: 4px;
+  background-color: var(--google-blue-soft);
+  color: var(--google-blue-text);
+  border-top-right-radius: 4px;
 }
 
 .agent-row .message-bubble {
   background-color: var(--panel-color);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-bottom-left-radius: 4px;
+  border: 1px solid var(--border-color-light);
+  border-top-left-radius: 4px;
+  box-shadow: var(--shadow-subtle);
 }
 
 .image-attachment img {
   max-width: 100%;
-  max-height: 200px;
-  border-radius: 12px;
-  margin-bottom: 8px;
+  max-height: 260px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
   display: block;
 }
 
-/* Typing indicator animation */
+.message-text {
+  word-break: break-word;
+}
+
+.message-text :deep(strong) {
+  font-weight: 600;
+}
+
+/* Typing Indicator */
 .typing-bubble {
-  padding: 12px 20px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
 }
 
 .typing-indicator {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .typing-indicator span {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   background-color: var(--text-secondary);
   border-radius: 50%;
-  animation: bounce 1.3s infinite ease-in-out;
+  display: inline-block;
+  animation: bounce 1.4s infinite ease-in-out both;
+  opacity: 0.6;
 }
 
-.typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
 
 @keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-4px); }
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1.0); }
 }
 
-/* Swipable Carousel */
-.product-carousel {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 12px 0 4px 0;
+/* Product grid cards inside chat */
+.product-results-container {
   width: 100%;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
 }
 
-/* Hide scrollbars but keep functionality */
-.product-carousel::-webkit-scrollbar {
-  display: none;
+.product-carousel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
 }
 
 .product-card {
-  flex: 0 0 180px;
-  scroll-snap-align: start;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
   background-color: var(--panel-color);
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-md);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-subtle);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--border-color);
 }
 
 .product-img-wrapper {
-  height: 110px;
-  background-color: #f1f3f4;
+  height: 130px;
+  background-color: #F8F9FA;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color-light);
   overflow: hidden;
 }
 
 .product-img-wrapper img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: cover;
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-img-wrapper img {
+  transform: scale(1.06);
 }
 
 .product-info {
-  padding: 10px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  gap: 4px;
+  gap: 6px;
 }
 
 .product-title {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -628,58 +772,164 @@ const submitMessage = async () => {
 }
 
 .product-price {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--google-blue);
+  color: var(--google-blue-text);
 }
 
 .product-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
-  height: 32px;
+  height: 36px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .buy-btn {
-  margin-top: 6px;
+  margin-top: 10px;
   background-color: var(--google-blue);
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 0;
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
   font-family: var(--font-family);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: background-color 0.2s, transform 0.1s;
 }
 
 .buy-btn:hover {
-  opacity: 0.9;
+  background-color: #1557b0;
 }
 
-/* Preview Bar */
-.preview-bar {
+.buy-btn:active {
+  transform: scale(0.97);
+}
+
+/* Floating Bottom Input Area */
+.bottom-input-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 35%, #ffffff 100%);
+  padding: 24px;
+  z-index: 90;
+}
+
+.input-bar-wrapper {
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-bar {
   background-color: var(--panel-color);
-  border-top: 1px solid var(--border-color);
-  padding: 10px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 28px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  flex-shrink: 0;
+  padding: 6px 8px 6px 18px;
+  gap: 12px;
+  box-shadow: var(--shadow-subtle);
+  transition: all 0.25s ease;
+}
+
+.input-bar:focus-within {
+  border-color: transparent;
+  box-shadow: var(--shadow-input);
+}
+
+.input-bar input {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-family: var(--font-family);
+  font-size: 15px;
+  color: var(--text-primary);
+  background-color: transparent;
+  padding: 10px 0;
+}
+
+.input-bar input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.input-action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-btn {
+  color: var(--text-secondary);
+}
+
+.file-btn:hover {
+  background-color: var(--border-color-light);
+  color: var(--text-primary);
+}
+
+.send-btn {
+  background-color: var(--google-blue);
+  color: white;
+}
+
+.send-btn:hover:not(:disabled) {
+  background-color: #1557b0;
+  transform: scale(1.04);
+}
+
+.send-btn:disabled {
+  background-color: var(--border-color-light);
+  color: #9aa0a6;
+  cursor: not-allowed;
+}
+
+.input-notice {
+  text-align: center;
+  font-size: 11px;
+  color: #9aa0a6;
+  margin-top: 4px;
+}
+
+/* Selected Image Preview */
+.preview-bar {
+  background-color: var(--panel-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-subtle);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .preview-img-container {
   position: relative;
-  width: 50px;
-  height: 50px;
-  border-radius: 6px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .preview-img-container img {
@@ -698,82 +948,18 @@ const submitMessage = async () => {
   background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
-  font-size: 9px;
+  font-size: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 
 .preview-text {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-}
-
-/* Input Area */
-.input-area {
-  height: 70px;
-  background-color: var(--panel-color);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  padding: 10px 15px;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.input-area input[type="text"] {
-  flex-grow: 1;
-  height: 44px;
-  border-radius: 22px;
-  border: 1px solid var(--border-color);
-  padding: 0 20px;
-  font-family: var(--font-family);
-  font-size: 14px;
-  outline: none;
-  background-color: var(--bg-color);
-  transition: border-color 0.2s;
-}
-
-.input-area input[type="text"]:focus {
-  border-color: var(--google-blue);
-  background-color: white;
-}
-
-.action-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--border-color);
-  background-color: var(--panel-color);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: all 0.2s;
-}
-
-.file-btn:hover {
-  background-color: #f1f3f4;
-  transform: scale(1.03);
-}
-
-.send-btn {
-  background-color: var(--google-blue);
-  color: white;
-  border: none;
-}
-
-.send-btn:hover:not(:disabled) {
-  opacity: 0.95;
-  transform: scale(1.03);
-}
-
-.send-btn:disabled {
-  background-color: #e8eaed;
-  color: #9aa0a6;
-  cursor: not-allowed;
+  line-height: 1.4;
 }
 
 /* Purchase Modal */
@@ -783,23 +969,123 @@ const submitMessage = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(32, 33, 36, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-  padding: 20px;
+  z-index: 200;
+  padding: 24px;
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
-  background: white;
-  border-radius: 16px;
+  background: var(--panel-color);
+  border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 380px;
-  padding: 24px;
+  max-width: 420px;
+  padding: 32px;
   text-align: center;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--google-green-soft);
+  color: var(--google-green-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+}
+
+.modal-content h3 {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  letter-spacing: -0.4px;
+}
+
+.modal-content p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.modal-product-detail {
+  background-color: #F8F9FA;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  border: 1px solid var(--border-color-light);
+  margin-bottom: 20px;
+}
+
+.modal-prod-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.modal-prod-sku {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.modal-prod-sku code {
+  background: #e8eaed;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.modal-prod-price {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.modal-sre-notice {
+  font-size: 12px;
+  color: var(--google-yellow-text);
+  background-color: var(--google-yellow-soft);
+  border: 1px solid #FFE0B2;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: left;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.modal-close-btn {
+  background-color: var(--google-blue);
+  color: white;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 12px 24px;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+  background-color: #1557b0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes popIn {
@@ -807,71 +1093,99 @@ const submitMessage = async () => {
   to { transform: scale(1); opacity: 1; }
 }
 
-.modal-success-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #E6F4EA;
-  color: var(--google-green);
-  font-size: 28px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px auto;
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-.modal-content h3 {
-  font-weight: 500;
-  font-size: 18px;
-  margin-bottom: 8px;
+@keyframes messageSlideIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-.modal-content p {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.modal-product-detail {
-  background-color: var(--bg-color);
-  border-radius: 8px;
-  padding: 12px;
-  text-align: left;
-  font-size: 13px;
-  border: 1px solid var(--border-color);
-  margin-bottom: 16px;
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
 }
 
-.modal-product-detail code {
-  background: #e8eaed;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
+/* Slide & Fade Transitions for Vue */
+.slide-up-enter-active, .slide-up-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-up-enter-from, .slide-up-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
 }
 
-.modal-sre-notice {
-  font-size: 11px !important;
-  color: var(--text-secondary);
-  background: #FEF7E0;
-  border: 1px solid #FFE0B2;
-  border-radius: 6px;
-  padding: 8px;
-  text-align: left;
-  margin-bottom: 20px;
-  line-height: 1.4;
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
-.modal-close-btn {
-  background-color: var(--google-blue);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-family: var(--font-family);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  width: 100%;
+/* Responsive Overrides */
+@media (max-width: 640px) {
+  .welcome-hero h2 {
+    font-size: 26px;
+  }
+  
+  .chat-feed-container {
+    padding: 24px 16px 150px 16px;
+    gap: 20px;
+  }
+  
+  .message-row {
+    max-width: 90%;
+    gap: 12px;
+  }
+  
+  .message-bubble {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .product-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    padding-bottom: 8px;
+    width: 100%;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .product-carousel::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+  
+  .product-card {
+    flex: 0 0 200px;
+    scroll-snap-align: start;
+  }
+  
+  .bottom-input-container {
+    padding: 16px;
+  }
+  
+  .input-bar {
+    padding: 4px 6px 4px 14px;
+    gap: 8px;
+  }
+  
+  .input-bar input {
+    font-size: 14px;
+    padding: 8px 0;
+  }
+  
+  .input-action-btn {
+    width: 36px;
+    height: 36px;
+  }
 }
 </style>

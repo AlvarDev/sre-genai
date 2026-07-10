@@ -21,6 +21,7 @@ export default defineNuxtConfig({
         { name: "description", content: "Google Store Virtual Shopping Assistant" }
       ],
       link: [
+        { rel: "icon", type: "image/webp", href: "https://www.gstatic.com/marketing-cms/assets/images/68/a8/c5cfedc44b8195ae82b92ad87f1c/fevicon.webp" },
         { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" }
       ]
     }
