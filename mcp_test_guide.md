@@ -4,6 +4,17 @@ This guide details how to manually test the `catalog-mcp-service` locally when r
 
 ---
 
+### Step 0: Ensure the Firestore Vector Index is Created
+
+Before running vector queries, make sure the required vector index is created on the `sre-genai` database:
+
+```bash
+gcloud firestore indexes composite create --project=sre-demos --database="sre-genai" --collection-group=products --query-scope=COLLECTION --field-config=vector-config='{"dimension":"768","flat": "{}"}',field-path=image_embeddings
+```
+*(This setup takes about 2 to 5 minutes to become active).*
+
+---
+
 ### Terminal 1
 Forward the internal service port `8001` to local port `8002` on your host:
 ```bash
