@@ -8,8 +8,12 @@ from agent.search import search_catalog_tool, search_catalog_by_image_tool
 from agent.guardrail import validate_user_input, filter_retrieved_products
 
 # 1. Initialize Vertex AI
-project_id = os.getenv("PROJECT_ID", "sre-genai")
+project_id = os.getenv("PROJECT_ID")
 location = os.getenv("LOCATION", "us-central1")
+
+if not project_id:
+    raise RuntimeError("PROJECT_ID environment variable is required but not set.")
+
 if os.getenv("LOCAL_DEVELOPMENT") != "true":
     vertexai.init(project=project_id, location=location)
 
@@ -35,7 +39,7 @@ def search_store_catalog(query_text: str) -> str:
 # 3. Instantiate the ADK Agent
 # This agent handles standard conversational and text-based searches using Gemini 3.1 Flash.
 core_agent = Agent(
-    model=os.getenv("CORE_MODEL", "gemini-2.0-flash"), # or gemini-3.1-flash
+    model=os.getenv("CORE_MODEL", "gemini-3.1-flash"),
     name="google_store_assistant",
     description="Virtual assistant for the Google Store catalog.",
     instruction=system_instruction,
@@ -68,8 +72,8 @@ def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
         # Local development offline simulation: dummy vector (768 dimensions)
         image_embedding = [0.1] * 768
     else:
-        # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI
-        client = genai.Client(vertexai=True, project=project_id, location=location)
+        # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI 'us' multi-region
+        client = genai.Client(vertexai=True, project=project_id, location="us")
         result = client.models.embed_content(
             model="gemini-embedding-2",
             contents=[
@@ -105,7 +109,7 @@ def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
         else:
             response_text = "Encontrei estes produtos semelhantes na nossa loja! Veja abaixo:"
     else:
-        model = GenerativeModel(os.getenv("CORE_MODEL", "gemini-2.0-flash"))
+        model = GenerativeModel(os.getenv("CORE_MODEL", "gemini-3.1-flash"))
         response = model.generate_content(grounding_prompt)
         response_text = response.text
 

@@ -9,8 +9,11 @@ from google import genai
 from google.genai import types
 
 # 1. Initialize Google Cloud project details
-project_id = os.getenv("PROJECT_ID", "sre-genai")
+project_id = os.getenv("PROJECT_ID")
 location = os.getenv("LOCATION", "us-central1")
+
+if not project_id:
+    raise RuntimeError("PROJECT_ID environment variable is required but not set.")
 
 # 2. Initialize Firestore Client
 db = firestore.Client(database="sre-genai")
@@ -31,8 +34,8 @@ def search_catalog(query_text: str) -> str:
             # Dummy vector for offline local testing
             query_vector = [0.1] * 768
         else:
-            # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI
-            client = genai.Client(vertexai=True, project=project_id, location=location)
+            # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI 'us' multi-region
+            client = genai.Client(vertexai=True, project=project_id, location="us")
             result = client.models.embed_content(
                 model="gemini-embedding-2",
                 contents=query_text,

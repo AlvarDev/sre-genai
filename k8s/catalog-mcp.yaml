@@ -25,16 +25,6 @@ spec:
               value: "8001"
             - name: LOCAL_DEVELOPMENT
               value: "true"
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: "/gcloud/application_default_credentials.json"
-          volumeMounts:
-            - name: gcloud-config
-              mountPath: /gcloud
-              readOnly: true
-      volumes:
-        - name: gcloud-config
-          hostPath:
-            path: /Users/alvardev/.config/gcloud
 ---
 apiVersion: v1
 kind: Service
