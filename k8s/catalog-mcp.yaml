@@ -23,8 +23,6 @@ spec:
           env:
             - name: PORT
               value: "8001"
-            - name: LOCAL_DEVELOPMENT
-              value: "true"
 ---
 apiVersion: v1
 kind: Service

@@ -6,16 +6,25 @@ build:
   local:
     push: false
   artifacts:
+    - image: backend-service
+      context: backend
+      docker:
+        dockerfile: Dockerfile
     - image: catalog-mcp-server
       context: catalog-mcp
       docker:
         dockerfile: Dockerfile
 manifests:
   rawYaml:
+    - k8s/backend.yaml
     - k8s/catalog-mcp.yaml
 deploy:
   kubectl: {}
 portForward:
+  - resourceType: Service
+    resourceName: backend-service
+    port: 8080
+    localPort: 8080
   - resourceType: Service
     resourceName: catalog-mcp-service
     port: 8001

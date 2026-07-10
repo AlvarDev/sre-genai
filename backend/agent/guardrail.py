@@ -15,8 +15,7 @@ violations_counter = meter.create_counter(
 # 2. Initialize Vertex AI
 project_id = os.getenv("PROJECT_ID", "sre-genai")
 location = os.getenv("LOCATION", "us-central1")
-if os.getenv("LOCAL_DEVELOPMENT") != "true":
-    vertexai.init(project=project_id, location=location)
+vertexai.init(project=project_id, location=location)
 
 # 3. Model Definition
 # We use Gemini 3.1 Flash-Lite (or fallback) for fast classification tasks
@@ -30,10 +29,6 @@ def validate_user_input(user_query: str) -> str:
     Pre-LLM Guardrail. Evaluates the user prompt for jailbreaks or prompt injections.
     Returns the query if safe, or raises GuardrailException if unsafe.
     """
-    if os.getenv("LOCAL_DEVELOPMENT") == "true" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-        # Bypass live Vertex AI call if offline and no credentials
-        return user_query
-
     try:
         model = GenerativeModel(model_name)
         classification_prompt = (
@@ -66,22 +61,6 @@ def filter_retrieved_products(raw_search_results: str) -> str:
     """
     if not raw_search_results or "No matching products" in raw_search_results:
         return raw_search_results
-
-    if os.getenv("LOCAL_DEVELOPMENT") == "true" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-        # Local development offline simulation:
-        # If "SKU:" is present and contains "potato" or "batata", filter it out manually
-        # to simulate the guardrail without making live Gemini calls
-        lines = raw_search_results.split("\n---\n")
-        filtered_lines = []
-        for line in lines:
-            if "potato" in line.lower() or "batata" in line.lower():
-                print(f"[GUARDRAIL WARNING] Silently filtered out local drift item: {line.split(chr(10))[0]}")
-                violations_counter.add(1, {"violation.type": "database_drift", "product.sku": "drift-potato"})
-            else:
-                filtered_lines.append(line)
-        if not filtered_lines:
-            return "No matching products found in the catalog."
-        return "\n---\n".join(filtered_lines)
 
     try:
         # Parse products separated by '---'

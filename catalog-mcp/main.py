@@ -30,18 +30,14 @@ def search_catalog(query_text: str) -> str:
     """
     try:
         # Generate embedding for the query text using the Multimodal Embedding model (768 dimensions)
-        if os.getenv("LOCAL_DEVELOPMENT") == "true" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-            # Dummy vector for offline local testing
-            query_vector = [0.1] * 768
-        else:
-            # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI 'us' multi-region
-            client = genai.Client(vertexai=True, project=project_id, location="us")
-            result = client.models.embed_content(
-                model="gemini-embedding-2",
-                contents=query_text,
-                config=types.EmbedContentConfig(output_dimensionality=768)
-            )
-            query_vector = result.embeddings[0].values
+        # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI 'us' multi-region
+        client = genai.Client(vertexai=True, project=project_id, location="us")
+        result = client.models.embed_content(
+            model="gemini-embedding-2",
+            contents=query_text,
+            config=types.EmbedContentConfig(output_dimensionality=768)
+        )
+        query_vector = result.embeddings[0].values
 
         # Perform nearest-neighbor vector search in Firestore on the image_embeddings field
         collection = db.collection("products")

@@ -12,7 +12,6 @@ steps:
         uv sync --project backend/ --frozen
         export PROJECT_ID=$PROJECT_ID
         export LOCATION=us-central1
-        export LOCAL_DEVELOPMENT=false
         # Run test using the locked virtualenv python
         backend/.venv/bin/python scripts/eval_test.py
 
@@ -72,7 +71,7 @@ steps:
       - '--region=us-central1'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,MCP_SERVER_URL=https://catalog-mcp-server-us-central1-placeholder.a.run.app/mcp/sse,LOCAL_DEVELOPMENT=false'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,MCP_SERVER_URL=https://catalog-mcp-server-us-central1-placeholder.a.run.app/mcp/sse'
 
   # Step 10: Deploy Nuxt Frontend (Public Ingress, connects to backend)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'

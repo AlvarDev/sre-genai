@@ -12,7 +12,8 @@ def get_mcp_headers() -> dict:
     Generates authentication headers for the MCP call.
     Uses OIDC identity token in production (Cloud Run) and bypasses in local dev.
     """
-    if os.getenv("LOCAL_DEVELOPMENT") == "true":
+    # Check if running in Google Cloud Run (sets K_SERVICE automatically)
+    if not os.getenv("K_SERVICE"):
         return {}
 
     # In production Cloud Run: query the metadata server for OIDC token

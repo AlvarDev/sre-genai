@@ -14,8 +14,7 @@ location = os.getenv("LOCATION", "us-central1")
 if not project_id:
     raise RuntimeError("PROJECT_ID environment variable is required but not set.")
 
-if os.getenv("LOCAL_DEVELOPMENT") != "true":
-    vertexai.init(project=project_id, location=location)
+vertexai.init(project=project_id, location=location)
 
 # Load System Prompt
 prompt_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "system_prompt.txt")
@@ -68,23 +67,19 @@ def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
     4. Injects clean products into Gemini context to answer the user.
     """
     # 1. Generate Image Embedding Vector
-    if os.getenv("LOCAL_DEVELOPMENT") == "true" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-        # Local development offline simulation: dummy vector (768 dimensions)
-        image_embedding = [0.1] * 768
-    else:
-        # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI 'us' multi-region
-        client = genai.Client(vertexai=True, project=project_id, location="us")
-        result = client.models.embed_content(
-            model="gemini-embedding-2",
-            contents=[
-                types.Part.from_bytes(
-                    data=image_bytes,
-                    mime_type="image/jpeg"
-                )
-            ],
-            config=types.EmbedContentConfig(output_dimensionality=768)
-        )
-        image_embedding = result.embeddings[0].values
+    # Load Gemini Embedding 2 model using google-genai client routed through Vertex AI 'us' multi-region
+    client = genai.Client(vertexai=True, project=project_id, location="us")
+    result = client.models.embed_content(
+        model="gemini-embedding-2",
+        contents=[
+            types.Part.from_bytes(
+                data=image_bytes,
+                mime_type="image/jpeg"
+            )
+        ],
+        config=types.EmbedContentConfig(output_dimensionality=768)
+    )
+    image_embedding = result.embeddings[0].values
 
     # 2. Search catalog by image vector
     raw_results = search_catalog_by_image_tool(image_embedding)
@@ -102,16 +97,9 @@ def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
         "Com base nos PRODUTOS fornecidos acima, responda ao usuário em português brasileiro sobre o que você encontrou."
     )
     
-    if os.getenv("LOCAL_DEVELOPMENT") == "true" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-        # Mock LLM response for offline testing
-        if "No visually matching" in clean_results or "No matching products" in clean_results:
-            response_text = "Desculpe, não encontramos nenhum produto correspondente na Google Store."
-        else:
-            response_text = "Encontrei estes produtos semelhantes na nossa loja! Veja abaixo:"
-    else:
-        model = GenerativeModel(os.getenv("CORE_MODEL", "gemini-3.1-flash"))
-        response = model.generate_content(grounding_prompt)
-        response_text = response.text
+    model = GenerativeModel(os.getenv("CORE_MODEL", "gemini-3.1-flash"))
+    response = model.generate_content(grounding_prompt)
+    response_text = response.text
 
     # 5. Extract individual products for structured UI rendering
     # We split clean_results back into a list of dictionaries for the frontend carousel
