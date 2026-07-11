@@ -109,7 +109,7 @@ async def run_text_chat(user_query: str, chat_history: list) -> dict:
             content=content,
             turn_complete=True
         )
-        session.events.append(event)
+        await session_service.append_event(session, event)
 
     # 6. Initialize ADK Runner
     runner = Runner(

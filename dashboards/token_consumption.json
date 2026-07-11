@@ -1,47 +1,111 @@
 {
   "displayName": "GenAI Token Consumption Dashboard",
-  "gridLayout": {
-    "columns": "2",
-    "widgets": [
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
       {
-        "title": "Total Tokens Consumed (Last 24h)",
-        "scorecard": {
-          "timeSeriesQuery": {
-            "prometheusQuery": "sum(increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[24h]))"
+        "xPos": 0,
+        "yPos": 0,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Daily Token History",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[1d]))"
+                },
+                "plotType": "STACKED_BAR"
+              }
+            ],
+            "yAxis": {
+              "label": "Tokens / Day",
+              "scale": "LINEAR"
+            }
           }
         }
       },
       {
-        "title": "Token Consumption Rate",
-        "xyChart": {
-          "dataSets": [
-            {
-              "timeSeriesQuery": {
-                "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (rate(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[1m]))"
-              },
-              "plotType": "LINE"
+        "xPos": 6,
+        "yPos": 0,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Token Consumption Rate",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (rate(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[1m]))"
+                },
+                "plotType": "LINE"
+              }
+            ],
+            "yAxis": {
+              "label": "Tokens / Sec",
+              "scale": "LINEAR"
             }
-          ],
-          "yAxis": {
-            "label": "Tokens / Sec",
-            "scale": "LINEAR"
           }
         }
       },
       {
-        "title": "Daily Token History",
-        "xyChart": {
-          "dataSets": [
-            {
-              "timeSeriesQuery": {
-                "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[1d]))"
-              },
-              "plotType": "STACKED_BAR"
+        "xPos": 0,
+        "yPos": 4,
+        "width": 5,
+        "height": 4,
+        "widget": {
+          "title": "Guardrail Violations",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (violation_type) (rate(workload_googleapis_com:google_store_guardrail_violations_total{monitored_resource=\"generic_node\"}[1m]))"
+                },
+                "plotType": "LINE"
+              }
+            ],
+            "yAxis": {
+              "label": "Violations / Sec",
+              "scale": "LINEAR"
             }
-          ],
-          "yAxis": {
-            "label": "Tokens / Day",
-            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "xPos": 5,
+        "yPos": 4,
+        "width": 2,
+        "height": 4,
+        "widget": {
+          "title": "Total Token Consumed (24h)",
+          "scorecard": {
+            "timeSeriesQuery": {
+              "prometheusQuery": "sum(increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[24h]))"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 7,
+        "yPos": 4,
+        "width": 5,
+        "height": 4,
+        "widget": {
+          "title": "Average Inference Latency",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_sum{monitored_resource=\"generic_node\"}[1m])) / sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_count{monitored_resource=\"generic_node\"}[1m]))"
+                },
+                "plotType": "LINE"
+              }
+            ],
+            "yAxis": {
+              "label": "Latency (Seconds)",
+              "scale": "LINEAR"
+            }
           }
         }
       }

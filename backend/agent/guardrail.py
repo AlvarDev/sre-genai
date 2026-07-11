@@ -86,7 +86,7 @@ def filter_retrieved_products(raw_search_results: str) -> str:
             # Classify product category using Gemini 3.1 Flash-Lite
             classification_prompt = (
                 "You are an e-commerce inventory auditor.\n"
-                "Verify if the following product belongs to Google Store electronics, smart home tech, or branded apparel.\n"
+                "Verify if the following product belongs to Google Store merchandise, office stationery (stickers, pens, notebooks), bags, accessories, toys, or branded apparel.\n"
                 "If it is a food item, grocery, fresh produce (e.g., potatoes, bananas), or unrelated retail item, respond with 'OFF-TOPIC'.\n"
                 "Otherwise, respond with 'VALID'.\n\n"
                 f"Product details:\n{product}\n\n"
