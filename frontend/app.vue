@@ -1,9 +1,17 @@
 <script setup>
+import { computed } from 'vue'
+
 const isDarkMode = useState('darkMode', () => true)
+
+useHead({
+  htmlAttrs: {
+    class: computed(() => isDarkMode.value ? 'theme-dark' : 'theme-light')
+  }
+})
 </script>
 
 <template>
-  <div :class="['app-container', isDarkMode ? 'theme-dark' : 'theme-light']">
+  <div class="app-container">
     <NuxtPage />
   </div>
 </template>
@@ -37,7 +45,7 @@ const isDarkMode = useState('darkMode', () => true)
 }
 
 /* Light Theme Variables */
-.app-container.theme-light {
+html.theme-light {
   --bg-color: #FFFFFF;
   --bg-color-alt: #FFFFFF;
   --panel-color: #FFFFFF;
@@ -61,7 +69,7 @@ const isDarkMode = useState('darkMode', () => true)
 }
 
 /* Dark Theme Variables */
-.app-container.theme-dark {
+html.theme-dark {
   --bg-color: #131314;
   --bg-color-alt: #131314;
   --panel-color: #1e1e20;
@@ -90,7 +98,7 @@ const isDarkMode = useState('darkMode', () => true)
   padding: 0;
 }
 
-body {
+html, body {
   font-family: var(--font-family);
   background-color: var(--bg-color-alt);
   color: var(--text-primary);

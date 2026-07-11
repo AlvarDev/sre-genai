@@ -126,7 +126,7 @@
         </transition>
 
         <!-- Main Pill Input Bar -->
-        <div class="input-bar">
+        <form class="input-bar" @submit.prevent="submitMessage">
           <!-- Hidden File input -->
           <input 
             type="file" 
@@ -136,7 +136,7 @@
             @change="onImageSelected"
           />
           
-          <button class="input-action-btn file-btn" @click="triggerImageUpload" title="Buscar por imagem">
+          <button type="button" class="input-action-btn file-btn" @click="triggerImageUpload" title="Buscar por imagem">
             <svg viewBox="0 0 24 24" width="20" height="20">
               <path fill="currentColor" d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
             </svg>
@@ -145,18 +145,17 @@
           <input 
             type="text" 
             v-model="inputText" 
-            @keydown.enter="submitMessage"
             placeholder="Escreva sua pergunta sobre a Google Store..."
             :disabled="isTyping"
             ref="messageInput"
           />
           
-          <button class="input-action-btn send-btn" @click="submitMessage" :disabled="!inputText.trim() && !selectedImage || isTyping" title="Enviar mensagem">
+          <button type="submit" class="input-action-btn send-btn" :disabled="!inputText.trim() && !selectedImage || isTyping" title="Enviar mensagem">
             <svg viewBox="0 0 24 24" width="20" height="20">
               <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
             </svg>
           </button>
-        </div>
+        </form>
 
         <p class="input-notice">
           Demonstração de Inteligência Artificial integrada com Google Cloud Operations Suite & Firebase.
@@ -277,9 +276,17 @@ const scrollToBottom = async (force = false) => {
 // Format markdown bold text inside LLM replies
 const formatText = (text) => {
   if (!text) return ''
-  // Basic replacement for **bold** text
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-             .replace(/\n/g, '<br/>')
+  // 1. Escape HTML special characters to prevent script injection
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+  // 2. Safely apply our own formatting tags
+  return escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br/>')
 }
 
 // Handle unsplash fallbacks if store urls are offline placeholders
@@ -589,6 +596,13 @@ const submitMessage = async () => {
 
 
 /* Chat Message Stream (Minimalist, Box-free & Bubble-free) */
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  width: 100%;
+}
+
 .message-row {
   display: flex;
   gap: 24px;
