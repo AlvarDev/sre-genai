@@ -139,7 +139,11 @@ async def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
     """
     # 1. Generate Image Embedding Vector (using raw Client since this is embedding generation, not agent conversation)
     from google.genai import Client
+    import time
     us_client = Client(vertexai=True, project=project_id, location="us")
+    
+    # Measure and record embedding generation latency
+    start_time = time.time()
     result = us_client.models.embed_content(
         model="gemini-embedding-2",
         contents=[
@@ -150,6 +154,29 @@ async def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
         ],
         config=types.EmbedContentConfig(output_dimensionality=768)
     )
+    duration = time.time() - start_time
+    
+    # Record the duration in OpenTelemetry (initialized lazily at request time)
+    try:
+        from opentelemetry import metrics
+        meter = metrics.get_meter("gcp.vertex.agent")
+        embedding_duration_histogram = meter.create_histogram(
+            name="gen_ai.client.operation.duration",
+            description="Duration of client operations",
+            unit="s"
+        )
+        embedding_duration_histogram.record(
+            duration,
+            {
+                "gen_ai.request.model": "gemini-embedding-2",
+                "gen_ai.agent.name": "visual_search",
+                "gen_ai.operation.name": "embeddings",
+                "gen_ai.provider.name": "google"
+            }
+        )
+    except Exception as e:
+        print(f"Failed to export embedding latency metrics: {e}")
+    
     image_embedding = result.embeddings[0].values
 
     # 2. Search catalog by image vector
