@@ -24,13 +24,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 mcp = FastMCP(
     "Catalog Search MCP Service",
     transport_security=TransportSecuritySettings(
-        allowed_hosts=[
-            "localhost",
-            "localhost:*",
-            "127.0.0.1",
-            "127.0.0.1:*",
-            "*.run.app"
-        ]
+        enable_dns_rebinding_protection=False
     )
 )
 

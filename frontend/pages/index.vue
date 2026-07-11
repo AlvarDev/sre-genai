@@ -195,7 +195,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { initializeApp } from 'firebase/app'
-import { getAuth, signInAnonymously, connectAuthEmulator } from 'firebase/auth'
+import { getAuth, signInAnonymously } from 'firebase/auth'
 
 // 1. Config & Runtime Env
 const config = useRuntimeConfig()
@@ -237,12 +237,7 @@ const initAuth = async () => {
     const app = initializeApp(firebaseConfig)
     authInstance = getAuth(app)
     
-    // Connect to Auth emulator if configured in local development
-    if (config.public.firebaseAuthEmulatorUrl) {
-      console.log(`Connecting to Firebase Auth emulator: ${config.public.firebaseAuthEmulatorUrl}`)
-      connectAuthEmulator(authInstance, config.public.firebaseAuthEmulatorUrl)
-    }
-    
+
     const userCredential = await signInAnonymously(authInstance)
     userUid.value = userCredential.user.uid
     console.log(`Authenticated silently with UID: ${userUid.value}`)

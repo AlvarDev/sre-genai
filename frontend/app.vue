@@ -105,41 +105,4 @@ body {
   display: flex;
   flex-direction: column;
 }
-
-/* Styled as a clean red diagonal ribbon in the top-right corner */
-.firebase-emulator-warning {
-  position: fixed !important;
-  top: 18px !important;
-  right: -38px !important;
-  left: auto !important;
-  bottom: auto !important;
-  width: 140px !important;
-  background-color: var(--google-red) !important;
-  color: white !important;
-  text-align: center !important;
-  font-family: var(--font-family) !important;
-  font-size: 0 !important; /* Hide original text node by setting its font-size to 0 */
-  font-weight: 700 !important;
-  letter-spacing: 1px !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
-  transform: rotate(45deg) !important;
-  z-index: 9999 !important;
-  pointer-events: none !important;
-  
-  /* Hide the original long text */
-  overflow: hidden !important;
-  padding: 8px 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  display: block !important; /* Force block layout */
-}
-
-.firebase-emulator-warning::before {
-  content: "Emulator" !important;
-  display: block !important;
-  font-family: var(--font-family) !important; /* Force the page's font-family */
-  font-size: 11px !important; /* Make the text slightly larger */
-  line-height: 1.2 !important;
-  color: white !important;
-}
 </style>

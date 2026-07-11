@@ -30,3 +30,7 @@ portForward:
     resourceName: frontend-service
     port: 3000
     localPort: 3000
+  - resourceType: Service
+    resourceName: backend-service
+    port: 8080
+    localPort: 8080

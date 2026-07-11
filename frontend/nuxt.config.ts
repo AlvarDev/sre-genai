@@ -4,12 +4,10 @@ export default defineNuxtConfig({
     // Private keys (only available server-side)
     backendUrl: process.env.NUXT_BACKEND_URL || "http://localhost:8080",
     public: {
-      // Firebase Emulator Endpoint (if running local development)
-      firebaseAuthEmulatorUrl: process.env.NUXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL || "http://localhost:9099",
       // Standard Firebase Project keys
-      firebaseApiKey: process.env.FIREBASE_API_KEY || "fake-api-key-for-anonymous-auth",
-      firebaseProjectId: process.env.FIREBASE_PROJECT_ID || "sre-genai",
-      firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN || "sre-genai.firebaseapp.com"
+      firebaseApiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || "fake-api-key-for-anonymous-auth",
+      firebaseProjectId: process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || "sre-genai",
+      firebaseAuthDomain: process.env.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "sre-genai.firebaseapp.com"
     }
   },
   app: {
