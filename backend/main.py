@@ -9,6 +9,21 @@ from firebase_admin import credentials, firestore, auth
 from agent.orchestrator import run_text_chat, run_visual_search
 from agent.guardrail import GuardrailException
 
+# Initialize OpenTelemetry Metrics with Google Cloud Monitoring Exporter
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.cloud_monitoring import CloudMonitoringMetricsExporter
+
+try:
+    exporter = CloudMonitoringMetricsExporter(project_id=os.getenv("PROJECT_ID"))
+    reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60000)
+    provider = MeterProvider(metric_readers=[reader])
+    metrics.set_meter_provider(provider)
+    print("OpenTelemetry Google Cloud Metrics Exporter initialized.")
+except Exception as e:
+    print(f"Failed to initialize OpenTelemetry Google Cloud Metrics Exporter: {e}")
+
 # 1. Initialize Firebase Admin and Firestore Client
 if not firebase_admin._apps:
     firebase_admin.initialize_app()
@@ -89,7 +104,7 @@ async def chat(request: ChatRequest, user_uid: str = Depends(get_current_user_ui
 
     try:
         # Run orchestrator
-        agent_res = run_text_chat(user_query, history)
+        agent_res = await run_text_chat(user_query, history)
         agent_reply = agent_res["text"]
         products = agent_res["products"]
     except GuardrailException as ge:
@@ -119,7 +134,7 @@ async def visual_search(
         image_bytes = await image.read()
         
         # Run visual search workflow
-        search_result = run_visual_search(image_bytes, message)
+        search_result = await run_visual_search(image_bytes, message)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Visual search failed: {str(e)}")
 

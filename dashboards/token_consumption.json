@@ -1,0 +1,50 @@
+{
+  "displayName": "GenAI Token Consumption Dashboard",
+  "gridLayout": {
+    "columns": "2",
+    "widgets": [
+      {
+        "title": "Total Tokens Consumed (OTel)",
+        "scorecard": {
+          "timeSeriesQuery": {
+            "timeSeriesFilter": {
+              "filter": "metric.type=\"custom.googleapis.com/gen_ai.client.token.usage\"",
+              "aggregation": {
+                "perSeriesAligner": "ALIGN_SUM",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "Token Consumption Rate (OTel)",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"custom.googleapis.com/gen_ai.client.token.usage\"",
+                  "aggregation": {
+                    "alignmentPeriod": "60s",
+                    "perSeriesAligner": "ALIGN_RATE",
+                    "crossSeriesReducer": "REDUCE_SUM",
+                    "groupByFields": [
+                      "metric.label.gen_ai_token_type",
+                      "metric.label.gen_ai_request_model"
+                    ]
+                  }
+                }
+              },
+              "plotType": "LINE"
+            }
+          ],
+          "yAxis": {
+            "label": "Tokens / Sec",
+            "scale": "LINEAR"
+          }
+        }
+      }
+    ]
+  }
+}
