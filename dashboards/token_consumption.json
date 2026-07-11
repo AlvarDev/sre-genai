@@ -4,43 +4,43 @@
     "columns": "2",
     "widgets": [
       {
-        "title": "Total Tokens Consumed (OTel)",
+        "title": "Total Tokens Consumed (Last 24h)",
         "scorecard": {
           "timeSeriesQuery": {
-            "timeSeriesFilter": {
-              "filter": "metric.type=\"custom.googleapis.com/gen_ai.client.token.usage\"",
-              "aggregation": {
-                "perSeriesAligner": "ALIGN_SUM",
-                "crossSeriesReducer": "REDUCE_SUM"
-              }
-            }
+            "prometheusQuery": "sum(increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[24h]))"
           }
         }
       },
       {
-        "title": "Token Consumption Rate (OTel)",
+        "title": "Token Consumption Rate",
         "xyChart": {
           "dataSets": [
             {
               "timeSeriesQuery": {
-                "timeSeriesFilter": {
-                  "filter": "metric.type=\"custom.googleapis.com/gen_ai.client.token.usage\"",
-                  "aggregation": {
-                    "alignmentPeriod": "60s",
-                    "perSeriesAligner": "ALIGN_RATE",
-                    "crossSeriesReducer": "REDUCE_SUM",
-                    "groupByFields": [
-                      "metric.label.gen_ai_token_type",
-                      "metric.label.gen_ai_request_model"
-                    ]
-                  }
-                }
+                "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (rate(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[1m]))"
               },
               "plotType": "LINE"
             }
           ],
           "yAxis": {
             "label": "Tokens / Sec",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "Daily Token History",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[1d]))"
+              },
+              "plotType": "STACKED_BAR"
+            }
+          ],
+          "yAxis": {
+            "label": "Tokens / Day",
             "scale": "LINEAR"
           }
         }

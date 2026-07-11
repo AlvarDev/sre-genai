@@ -15,6 +15,8 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.cloud_monitoring import CloudMonitoringMetricsExporter
 
+provider = None
+
 try:
     exporter = CloudMonitoringMetricsExporter(project_id=os.getenv("PROJECT_ID"))
     reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60000)
