@@ -3,13 +3,21 @@ import re
 from opentelemetry import metrics
 from google import genai
 
-# 1. Initialize OpenTelemetry Metrics
-meter = metrics.get_meter("google_store.agent.guardrail")
-violations_counter = meter.create_counter(
-    name="workload.googleapis.com/google_store.guardrail.violations",
-    description="Number of off-topic database drift items filtered by the Guardrail Agent.",
-    unit="1"
-)
+# 1. Initialize OpenTelemetry Metrics (handled lazily inside functions)
+_violations_counter = None
+
+def get_violations_counter():
+    global _violations_counter
+    if _violations_counter is None:
+        try:
+            _violations_counter = metrics.get_meter("google_store.agent.guardrail").create_counter(
+                name="google_store.guardrail.violations",
+                description="Number of off-topic database drift items filtered by the Guardrail Agent.",
+                unit="1"
+            )
+        except Exception as e:
+            print(f"OTel counter initialization failed: {e}")
+    return _violations_counter
 
 # 2. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
@@ -48,8 +56,13 @@ def validate_user_input(user_query: str) -> str:
         verdict = response.text.strip().upper()
         
         if "UNSAFE" in verdict:
-            # Increment the violation count
-            violations_counter.add(1, {"violation.type": "input_jailbreak"})
+            # Increment the violation count using cached counter
+            counter = get_violations_counter()
+            if counter:
+                try:
+                    counter.add(1, {"violation.type": "input_jailbreak"})
+                except Exception as metric_err:
+                    print(f"Failed to record jailbreak metric: {metric_err}")
             raise GuardrailException("Desculpe, sua mensagem viola nossas políticas de segurança.")
             
         return user_query
@@ -99,10 +112,15 @@ def filter_retrieved_products(raw_search_results: str) -> str:
             verdict = response.text.strip().upper()
 
             if "OFF-TOPIC" in verdict:
-                # Log violation metric
+                # Log violation metric using cached counter
                 sku_match = re.search(r"SKU:\s*(\S+)", product)
                 sku = sku_match.group(1) if sku_match else "unknown"
-                violations_counter.add(1, {"violation.type": "database_drift", "product.sku": sku})
+                counter = get_violations_counter()
+                if counter:
+                    try:
+                        counter.add(1, {"violation.type": "database_drift", "product.sku": sku})
+                    except Exception as metric_err:
+                        print(f"Failed to record database drift metric: {metric_err}")
                 print(f"[GUARDRAIL WARNING] Silently filtered out database drift product SKU: {sku}")
             else:
                 filtered_products.append(product)

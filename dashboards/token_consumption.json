@@ -60,7 +60,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (violation_type) (rate(workload_googleapis_com:google_store_guardrail_violations_total{monitored_resource=\"generic_node\"}[1m]))"
+                  "prometheusQuery": "sum by (violation_type) (rate(workload_googleapis_com:google_store_guardrail_violations{monitored_resource=\"generic_node\"}[1m]))"
                 },
                 "plotType": "LINE"
               }

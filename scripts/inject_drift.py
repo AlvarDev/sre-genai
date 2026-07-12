@@ -40,8 +40,20 @@ def inject_database_drift():
         # Combine text fields to generate embedding input
         combined_text = f"{p['title']} {p['shortdesc']} {p['longdesc']} {p['keywords']}"
         
-        # Multimodal image embedding vector (768 dimensions)
-        image_vector = [0.9] * 768
+        # Generate real semantic vector embedding using gemini-embedding-2
+        try:
+            from google.genai import Client, types
+            client = Client(vertexai=True, project=os.getenv("PROJECT_ID", "sre-demos"), location="us")
+            res = client.models.embed_content(
+                model="gemini-embedding-2",
+                contents=combined_text,
+                config=types.EmbedContentConfig(output_dimensionality=768)
+            )
+            image_vector = res.embeddings[0].values
+            print(f"Generated real embedding vector for: {p['title']}")
+        except Exception as embed_err:
+            print(f"Failed to generate real embedding vector: {embed_err}")
+            image_vector = [0.9] * 768
         
         # Build Firestore Document
         doc_data = {
