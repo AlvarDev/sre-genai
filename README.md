@@ -1,6 +1,6 @@
 # Brainstorming & Architecture Proposal: SRE for GenAI Demo
 
-This document outlines the architecture, components, and implementation plan for your upcoming presentation: **"SRE for GenAI: Chaos Engineering & Automated Guardrails on Google Cloud Run"**. 
+This document outlines the architecture, components, and implementation plan for your upcoming presentation: **"Lessons Learned from SRE for GenAI: Chaos Engineering & Automated Guardrails on Google Cloud Run"**. 
 
 It uses Google Cloud native products, draws inspiration from the [Google Cloud Microservices Demo](https://github.com/googlecloudplatform/microservices-demo), and implements a multi-agent system utilizing Google’s **Agent Development Kit (ADK)**, **Model Context Protocol (MCP)**, and **RAG**.
 
