@@ -30,8 +30,8 @@ if not project_id:
 client = genai.Client(vertexai=True, project=project_id, location=location)
 
 # 3. Model Definition
-# We use Gemini 3.1 Flash-Lite for fast classification tasks
-model_name = os.getenv("GUARDRAIL_MODEL", "gemini-3.1-flash-lite")
+# We use Gemini 3.5 Flash-Lite for fast classification tasks
+model_name = os.getenv("GUARDRAIL_MODEL", "gemini-3.5-flash-lite")
 
 class GuardrailException(Exception):
     pass

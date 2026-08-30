@@ -29,6 +29,10 @@ spec:
               value: "sre-demos"
             - name: FIRESTORE_DATABASE
               value: "sre-genai"
+            - name: CORE_MODEL
+              value: "gemini-3.7-flash"
+            - name: GUARDRAIL_MODEL
+              value: "gemini-3.5-flash-lite"
 ---
 apiVersion: v1
 kind: Service

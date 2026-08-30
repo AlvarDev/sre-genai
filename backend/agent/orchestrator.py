@@ -23,7 +23,7 @@ with open(prompt_path, "r", encoding="utf-8") as f:
     system_instruction = f.read()
 
 # Setup the Gemini model connection
-model_name = os.getenv("CORE_MODEL", "gemini-3.1-flash-lite")
+model_name = os.getenv("CORE_MODEL", "gemini-3.7-flash")
 gemini_model = Gemini(
     model=model_name,
     client_kwargs={
