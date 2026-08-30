@@ -132,7 +132,11 @@ async def run_text_chat(user_query: str, chat_history: list, user_uid: str = "")
                 if part.text:
                     response_text += part.text
                 if hasattr(part, "function_response") and part.function_response:
-                    retrieved_catalog_text += str(part.function_response.response)
+                    resp = part.function_response.response
+                    if isinstance(resp, dict):
+                        retrieved_catalog_text += "\n".join(str(val) for val in resp.values())
+                    elif isinstance(resp, str):
+                        retrieved_catalog_text += resp
 
     structured_products = parse_structured_products(retrieved_catalog_text)
 
