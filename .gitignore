@@ -1,0 +1,51 @@
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and databases
+*.log
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+.firebase/
+
+# Local Firebase config pinning specific projects
+.firebaserc
+
+# Node / Nuxt Frontend build output & dependencies
+node_modules/
+.nuxt/
+.output/
+dist/
+.env
+.env.local
+.env.*.local
+yarn-error.log
+
+# Python Backend / Scripts / MCP
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
