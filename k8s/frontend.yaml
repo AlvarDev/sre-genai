@@ -25,6 +25,9 @@ spec:
               value: "3000"
             - name: NUXT_BACKEND_URL
               value: "http://backend-service:8080"
+          envFrom:
+            - secretRef:
+                name: frontend-env
 ---
 apiVersion: v1
 kind: Service
