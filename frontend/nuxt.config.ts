@@ -5,7 +5,7 @@ export default defineNuxtConfig({
     backendUrl: process.env.NUXT_BACKEND_URL || "http://localhost:8080",
     public: {
       // Standard Firebase Project keys
-      firebaseApiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || "fake-api-key-for-anonymous-auth",
+      firebaseApiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || "",
       firebaseProjectId: process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || "sre-genai",
       firebaseAuthDomain: process.env.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "sre-genai.firebaseapp.com"
     }

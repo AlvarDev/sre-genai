@@ -108,33 +108,22 @@ async def call_mcp_tool(tool_name: str, arguments: dict) -> str:
             logger.warning(f"Tool '{tool_name}' returned empty or null content.")
             return "No data returned from catalog tool."
 
-from concurrent.futures import ThreadPoolExecutor
-
-_executor = ThreadPoolExecutor(max_workers=4)
-
-def run_sync(coro):
-    """
-    Helper to run a coroutine synchronously by offloading it to a background thread
-    with a fresh event loop (using asyncio.run), bypassing the main running event loop.
-    """
-    return _executor.submit(asyncio.run, coro).result()
-
-def search_catalog_tool(query_text: str) -> str:
+async def search_catalog_tool(query_text: str) -> str:
     """
     Wraps the async call to search_catalog for the ADK agent engine.
     """
     try:
-        return run_sync(call_mcp_tool("search_catalog", {"query_text": query_text}))
+        return await call_mcp_tool("search_catalog", {"query_text": query_text})
     except Exception as e:
         logger.error(f"Error connecting to catalog search tool: {str(e)}", exc_info=True)
         return f"Error connecting to catalog search tool: {str(e)}"
 
-def search_catalog_by_image_tool(image_vector: list[float]) -> str:
+async def search_catalog_by_image_tool(image_vector: list[float]) -> str:
     """
     Wraps the async call to search_catalog_by_image for the ADK agent engine.
     """
     try:
-        return run_sync(call_mcp_tool("search_catalog_by_image", {"image_vector": image_vector}))
+        return await call_mcp_tool("search_catalog_by_image", {"image_vector": image_vector})
     except Exception as e:
         logger.error(f"Error connecting to catalog visual search tool: {str(e)}", exc_info=True)
         return f"Error connecting to catalog visual search tool: {str(e)}"

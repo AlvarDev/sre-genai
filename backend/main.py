@@ -14,6 +14,7 @@ from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.cloud_monitoring import CloudMonitoringMetricsExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 provider = None
 
@@ -57,11 +58,14 @@ def get_current_user_uid(credentials: HTTPAuthorizationCredentials = Depends(sec
 # 2. FastAPI Setup
 app = FastAPI(title="SRE GenAI Agent Backend")
 
-# Enable CORS for frontend connection (local dev and prod)
+FastAPIInstrumentor.instrument_app(app)
+
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=True if allowed_origins != ["*"] else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -109,7 +113,7 @@ async def chat(request: ChatRequest, user_uid: str = Depends(get_current_user_ui
 
     try:
         # Run orchestrator
-        agent_res = await run_text_chat(user_query, history)
+        agent_res = await run_text_chat(user_query, history, user_uid=user_uid)
         agent_reply = agent_res["text"]
         products = agent_res["products"]
     except GuardrailException as ge:
@@ -135,11 +139,16 @@ async def visual_search(
     active_session_id = session_id or str(uuid.uuid4())
     
     try:
+        # File size validation (Max 10MB)
+        MAX_FILE_SIZE = 10 * 1024 * 1024
+        if image.size and image.size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="Image size exceeds maximum limit of 10MB.")
+
         # Read uploaded image bytes
         image_bytes = await image.read()
         
         # Run visual search workflow
-        search_result = await run_visual_search(image_bytes, message)
+        search_result = await run_visual_search(image_bytes, message, user_uid=user_uid)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Visual search failed: {str(e)}")
 

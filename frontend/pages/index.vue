@@ -150,7 +150,7 @@
             ref="messageInput"
           />
           
-          <button type="submit" class="input-action-btn send-btn" :disabled="!inputText.trim() && !selectedImage || isTyping" title="Enviar mensagem">
+          <button type="submit" class="input-action-btn send-btn" :disabled="!inputText.trim() && !selectedImage || isTyping || !authReady" title="Enviar mensagem">
             <svg viewBox="0 0 24 24" width="20" height="20">
               <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
             </svg>
@@ -208,7 +208,8 @@ const toggleTheme = () => {
 
 // State Variables
 const sessionId = ref('')
-const userUid = ref('anonymous')
+const userUid = ref('')
+const authReady = ref(false)
 const messages = ref([])
 const inputText = ref('')
 const isTyping = ref(false)
@@ -239,6 +240,7 @@ const initAuth = async () => {
 
     const userCredential = await signInAnonymously(authInstance)
     userUid.value = userCredential.user.uid
+    authReady.value = true
     console.log(`Authenticated silently with UID: ${userUid.value}`)
   } catch (err) {
     console.error('Firebase Anonymous Auth failed:', err)
