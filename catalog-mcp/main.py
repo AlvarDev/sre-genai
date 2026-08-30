@@ -15,10 +15,16 @@ logger = logging.getLogger("catalog-mcp-server")
 
 # 1. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
-location = os.getenv("LOCATION", "us-central1")
+location = os.getenv("LOCATION")
+database_id = os.getenv("FIRESTORE_DATABASE")
 
 if not project_id:
     raise RuntimeError("PROJECT_ID environment variable is required but not set.")
+if not location:
+    raise RuntimeError("LOCATION environment variable is required but not set.")
+if not database_id:
+    raise RuntimeError("FIRESTORE_DATABASE environment variable is required but not set.")
+
 
 
 class ProductCatalogRepository:
@@ -64,9 +70,9 @@ class ProductCatalogRepository:
 
 
 # 2. Initialize Clients and Repositories Globally
-db = firestore.Client(database="sre-genai")
+db = firestore.Client(database=database_id)
 catalog_repo = ProductCatalogRepository(db)
-genai_client = genai.Client(vertexai=True, project=project_id, location="us")
+genai_client = genai.Client(vertexai=True, project=project_id, location=location)
 logger.info(f"Initialized Firestore and GenAI clients. Project: {project_id}")
 
 # 3. Initialize the FastMCP Server
@@ -135,6 +141,11 @@ def search_catalog_by_image(image_vector: list[float]) -> str:
 
 # 6. Mount the MCP SSE application onto FastAPI
 app = FastAPI(title="Catalog MCP Server API")
+
+@app.get("/health")
+def health():
+    return {"status": "healthy", "service": "catalog-mcp"}
+
 app.mount("/mcp", mcp.sse_app())
 
 if __name__ == "__main__":

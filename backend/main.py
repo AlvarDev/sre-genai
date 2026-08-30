@@ -31,7 +31,10 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app()
 
 from google.cloud import firestore as gcloud_firestore
-db = gcloud_firestore.Client(database="sre-genai")
+database_id = os.getenv("FIRESTORE_DATABASE")
+if not database_id:
+    raise RuntimeError("FIRESTORE_DATABASE environment variable is required but not set.")
+db = gcloud_firestore.Client(database=database_id)
 
 # HTTP Bearer Security scheme for Firebase ID Tokens
 security = HTTPBearer()

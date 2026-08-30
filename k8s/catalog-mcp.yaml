@@ -23,6 +23,12 @@ spec:
           env:
             - name: PORT
               value: "8001"
+            - name: PROJECT_ID
+              value: "sre-demos"
+            - name: LOCATION
+              value: "southamerica-east1"
+            - name: FIRESTORE_DATABASE
+              value: "sre-genai"
 ---
 apiVersion: v1
 kind: Service

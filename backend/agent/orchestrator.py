@@ -33,6 +33,33 @@ gemini_model = Gemini(
     }
 )
 
+def parse_structured_products(clean_results: str) -> list[dict]:
+    """
+    Helper to parse raw catalog tool output text into structured dictionaries for the UI.
+    """
+    structured_products = []
+    if clean_results and "No matching products" not in clean_results and "No visually matching" not in clean_results:
+        parts = clean_results.split("\n---\n")
+        for part in parts:
+            if not part.strip():
+                continue
+            lines = part.strip().split("\n")
+            p_dict = {}
+            for line in lines:
+                if line.startswith("Title:"):
+                    p_dict["title"] = line.replace("Title:", "").strip()
+                elif line.startswith("SKU:"):
+                    p_dict["parent_sku"] = line.replace("SKU:", "").strip()
+                elif line.startswith("Price:"):
+                    p_dict["retail_price"] = line.replace("Price: R$", "").replace("Price:", "").strip()
+                elif line.startswith("Description:"):
+                    p_dict["shortdesc"] = line.replace("Description:", "").strip()
+                elif line.startswith("Image URL:"):
+                    p_dict["img_url"] = line.replace("Image URL:", "").strip()
+            if p_dict:
+                structured_products.append(p_dict)
+    return structured_products
+
 async def run_text_chat(user_query: str, chat_history: list) -> dict:
     """
     Processes a text query using ADK LlmAgent. Validates input, updates history, and returns the response.
@@ -55,26 +82,7 @@ async def run_text_chat(user_query: str, chat_history: list) -> dict:
         clean_results = filter_retrieved_products(raw_results)
         
         # Parse clean_results into structured_products for the UI
-        if clean_results and "No matching products" not in clean_results and "No visually matching" not in clean_results:
-            parts = clean_results.split("\n---\n")
-            for part in parts:
-                if not part.strip():
-                    continue
-                lines = part.strip().split("\n")
-                p_dict = {}
-                for line in lines:
-                    if line.startswith("Title:"):
-                        p_dict["title"] = line.replace("Title:", "").strip()
-                    elif line.startswith("SKU:"):
-                        p_dict["parent_sku"] = line.replace("SKU:", "").strip()
-                    elif line.startswith("Price:"):
-                        p_dict["retail_price"] = line.replace("Price: R$", "").replace("Price:", "").strip()
-                    elif line.startswith("Description:"):
-                        p_dict["shortdesc"] = line.replace("Description:", "").strip()
-                    elif line.startswith("Image URL:"):
-                        p_dict["img_url"] = line.replace("Image URL:", "").strip()
-                if p_dict:
-                    structured_products.append(p_dict)
+        structured_products.extend(parse_structured_products(clean_results))
                     
         return clean_results
 
@@ -221,27 +229,7 @@ async def run_visual_search(image_bytes: bytes, user_query: str = "") -> dict:
                     response_text += part.text
 
     # 5. Extract individual products for structured UI rendering
-    structured_products = []
-    if "No matching products" not in clean_results and "No visually matching" not in clean_results:
-        parts = clean_results.split("\n---\n")
-        for part in parts:
-            if not part.strip():
-                continue
-            lines = part.strip().split("\n")
-            p_dict = {}
-            for line in lines:
-                if line.startswith("Title:"):
-                    p_dict["title"] = line.replace("Title:", "").strip()
-                elif line.startswith("SKU:"):
-                    p_dict["parent_sku"] = line.replace("SKU:", "").strip()
-                elif line.startswith("Price:"):
-                    p_dict["retail_price"] = line.replace("Price: R$", "").replace("Price:", "").strip()
-                elif line.startswith("Description:"):
-                    p_dict["shortdesc"] = line.replace("Description:", "").strip()
-                elif line.startswith("Image URL:"):
-                    p_dict["img_url"] = line.replace("Image URL:", "").strip()
-            if p_dict:
-                structured_products.append(p_dict)
+    structured_products = parse_structured_products(clean_results)
                 
     return {
         "text": response_text,
