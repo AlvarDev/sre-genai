@@ -54,10 +54,11 @@ steps:
       - 'deploy'
       - 'catalog-mcp-server'
       - '--image=gcr.io/$PROJECT_ID/catalog-mcp-server:$COMMIT_SHA'
-      - '--region=us-central1'
+      - '--region=southamerica-east1'
       - '--platform=managed'
       - '--no-allow-unauthenticated'
       - '--set-env-vars=PROJECT_ID=$PROJECT_ID'
+      - '--service-account=catalog-mcp-sa@$PROJECT_ID.iam.gserviceaccount.com'
 
   # Step 9: Deploy Agent Backend (Public Ingress, connects to private MCP)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -68,10 +69,11 @@ steps:
       - 'deploy'
       - 'backend-service'
       - '--image=gcr.io/$PROJECT_ID/backend-service:$COMMIT_SHA'
-      - '--region=us-central1'
+      - '--region=southamerica-east1'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,MCP_SERVER_URL=https://catalog-mcp-server-us-central1-placeholder.a.run.app/mcp/sse'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,MCP_SERVER_URL=https://catalog-mcp-server-southamerica-east1-placeholder.a.run.app/mcp/sse'
+      - '--service-account=backend-sa@$PROJECT_ID.iam.gserviceaccount.com'
 
   # Step 10: Deploy Nuxt Frontend (Public Ingress, connects to backend)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -82,10 +84,11 @@ steps:
       - 'deploy'
       - 'frontend-service'
       - '--image=gcr.io/$PROJECT_ID/frontend-service:$COMMIT_SHA'
-      - '--region=us-central1'
+      - '--region=southamerica-east1'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=NUXT_PUBLIC_BACKEND_URL=https://backend-service-us-central1-placeholder.a.run.app'
+      - '--set-env-vars=NUXT_PUBLIC_BACKEND_URL=https://backend-service-southamerica-east1-placeholder.a.run.app'
+      - '--service-account=frontend-sa@$PROJECT_ID.iam.gserviceaccount.com'
 
 images:
   - 'gcr.io/$PROJECT_ID/catalog-mcp-server:$COMMIT_SHA'

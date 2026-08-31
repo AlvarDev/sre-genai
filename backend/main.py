@@ -1,5 +1,6 @@
 import os
 import uuid
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -19,11 +20,12 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 provider = None
 
 try:
+    export_interval_ms = int(os.getenv("OTEL_EXPORT_INTERVAL_MS", "60000"))
     exporter = CloudMonitoringMetricsExporter(project_id=os.getenv("PROJECT_ID"))
-    reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60000)
+    reader = PeriodicExportingMetricReader(exporter, export_interval_millis=export_interval_ms)
     provider = MeterProvider(metric_readers=[reader])
     metrics.set_meter_provider(provider)
-    print("OpenTelemetry Google Cloud Metrics Exporter initialized.")
+    print(f"OpenTelemetry Google Cloud Metrics Exporter initialized (Export Interval: {export_interval_ms}ms).")
 except Exception as e:
     print(f"Failed to initialize OpenTelemetry Google Cloud Metrics Exporter: {e}")
 
@@ -55,8 +57,20 @@ def get_current_user_uid(credentials: HTTPAuthorizationCredentials = Depends(sec
             detail=f"Invalid or expired authentication token: {str(e)}"
         )
 
+# Lifespan context manager to flush OTel metric buffers on container shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    if provider is not None:
+        try:
+            provider.force_flush()
+            provider.shutdown()
+            print("Flushed OpenTelemetry metrics on app shutdown.")
+        except Exception as e:
+            print(f"Error flushing telemetry: {e}")
+
 # 2. FastAPI Setup
-app = FastAPI(title="SRE GenAI Agent Backend")
+app = FastAPI(title="SRE GenAI Agent Backend", lifespan=lifespan)
 
 FastAPIInstrumentor.instrument_app(app)
 

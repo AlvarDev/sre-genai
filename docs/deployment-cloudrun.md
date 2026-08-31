@@ -10,6 +10,7 @@ gcloud run deploy backend-service \
   --image southamerica-east1-docker.pkg.dev/sre-demos/sre-genai/backend-service:latest \
   --region southamerica-east1 \
   --set-env-vars="PROJECT_ID=sre-demos,MCP_SERVER_URL=https://catalog-mcp-server-1010474272420.southamerica-east1.run.app/mcp/sse,CORE_MODEL=gemini-3.5-flash,GUARDRAIL_MODEL=gemini-3.1-flash-lite" \
+  --service-account backend-sa@sre-demos.iam.gserviceaccount.com \
   --no-cpu-throttling \
   --allow-unauthenticated \
   --platform managed
@@ -24,3 +25,4 @@ gcloud run deploy backend-service \
 | `MCP_SERVER_URL` | Environment Var | The endpoint of the Catalog MCP service. |
 | `--no-cpu-throttling` | Flag | Keeps the CPU allocated to the container at all times. **Critical for OpenTelemetry metrics** background batch exporters to run between requests. |
 | `--allow-unauthenticated` | Flag | Permits public HTTP access to the backend endpoint. |
+| `--service-account` | Flag | Dedicated least-privilege IAM service account (`backend-sa@sre-demos.iam.gserviceaccount.com`). |
