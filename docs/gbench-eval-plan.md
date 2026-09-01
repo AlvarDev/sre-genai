@@ -9,7 +9,7 @@ This evaluation plan benchmarks the **Google Store Multimodal Virtual Assistant*
 
 The primary objective is to conduct a rigorous comparison between two architecture patterns:
 1. **Managed Cloud API**: `Gemini 3.7 Flash` via **Google Agent Platform**.
-2. **Self-Hosted Compute**: `Gemma 4` hosted on Cloud Run.
+2. **Self-Hosted Compute**: `Gemma 4` (specifically `gemma4:e4b`) hosted on Cloud Run.
 
 ---
 
