@@ -27,20 +27,18 @@ When processing an end-user request, the assistant executes a **3-step sequentia
                     (3) Post-RAG Guardrail (Product Drift Audit) ──> [Final Answer]
 ```
 
-To isolate application overhead (guardrails + MCP vector search) from raw model serving performance, the evaluation is split into **4 dedicated Cloud Run services**.
+To isolate application overhead (guardrails + MCP vector search) from raw model serving performance, the evaluation is hosted across **2 Cloud Run backend services** exposing path-based routes (`/v1` for Full Pipeline vs. `/v1/core` for Direct Core Model).
 
 ---
 
 ## 🛠️ Microservice Test Matrix
 
-We deploy **4 distinct Cloud Run backend endpoints**:
+We deploy **2 Cloud Run backend services**:
 
-| Service ID | Architecture Scope | Core Model | Guardrail Model | Primary Evaluation Goal |
-| :--- | :--- | :--- | :--- | :--- |
-| **`service-1-full-gemini`** | Full Pipeline | Gemini 3.7 Flash | Gemini 3.5 Flash-Lite | System E2E Latency (Agent Platform) |
-| **`service-2-full-gemma`** | Full Pipeline | Gemma 4 | Gemini 3.5 Flash-Lite | System E2E Latency (Compute) |
-| **`service-3-core-gemini`** | Direct Core Model | Gemini 3.7 Flash | *None (Bypassed)* | Pure Model TTFT/TPOT & Golden Capabilities |
-| **`service-4-core-gemma`** | Direct Core Model | Gemma 4 (vLLM/Ollama `/v1`) | *None (Bypassed)* | Pure Model TTFT/TPOT & Golden Capabilities |
+| Service ID | Host Architecture | `/v1` Path (Full Pipeline) | `/v1/core` Path (Direct Core Model) |
+| :--- | :--- | :--- | :--- |
+| **`backend-gemini`** | FastAPI + Gemini API (Vertex AI) | E2E System Latency (Gemini Core) | Pure TTFT/TPOT & Golden Capabilities (Gemini 3.7 Flash) |
+| **`backend-gemma`** | FastAPI + Embedded Ollama (Gemma 4) | E2E System Latency (Gemma Core) | Pure TTFT/TPOT & Golden Capabilities (Gemma 4) |
 
 > [!NOTE]
 > Holding the `GUARDRAIL_MODEL` constant (`gemini-3.5-flash-lite`) across Service 1 and Service 2 ensures that the **only variable changing in the full pipeline is the core LLM**, providing a clean A/B comparison of application response time.
@@ -49,40 +47,40 @@ We deploy **4 distinct Cloud Run backend endpoints**:
 
 ## 🧪 `gbench` Execution Suite
 
-We run `gbench` against all 4 service endpoints targeting their OpenAI-compatible `/v1/chat/completions` REST interface:
+We run `gbench` against both backend services targeting their OpenAI-compatible REST endpoints (`/v1` vs `/v1/core`):
 
-### 1. Full Pipeline E2E Benchmarks (Services 1 & 2)
+### 1. Full Pipeline E2E Benchmarks
 Focuses on end-to-end system user experience (E2EL) under realistic multi-turn guardrail and tool execution workloads.
 
 ```bash
 # Test 1: Full Pipeline (Gemini Core)
-gbench --remote-endpoint https://service-1-full-gemini-....southamerica-east1.run.app/v1 \
+gbench --remote-endpoint https://backend-gemini-....southamerica-east1.run.app/v1 \
        --serving-only \
        --results-dir ./results/01-full-pipeline-gemini
 
 # Test 2: Full Pipeline (Gemma 4 Core)
-gbench --remote-endpoint https://service-2-full-gemma-....southamerica-east1.run.app/v1 \
+gbench --remote-endpoint https://backend-gemma-....southamerica-east1.run.app/v1 \
        --serving-only \
        --results-dir ./results/02-full-pipeline-gemma
 ```
 
 ---
 
-### 2. Direct Core Model Benchmarks (Services 3 & 4)
+### 2. Direct Core Model Benchmarks (via `/v1/core`)
 Focuses on pure model performance (unfiltered TTFT, TPOT, tokens/sec) and Golden Set capability invariant pass rates (`16/16 PASS`).
 
 ```bash
 # Test 3: Raw Core Model (Gemini 3.7 Flash)
-gbench --remote-endpoint https://service-3-core-gemini-....southamerica-east1.run.app/v1 \
+gbench --remote-endpoint https://backend-gemini-....southamerica-east1.run.app/v1/core \
        --serving-only \
        --golden-only \
-       --results-dir ./results/03-raw-core-gemini
+       --results-dir ./results/03-direct-core-gemini
 
 # Test 4: Raw Core Model (Gemma 4)
-gbench --remote-endpoint https://service-4-core-gemma-....southamerica-east1.run.app/v1 \
+gbench --remote-endpoint https://backend-gemma-....southamerica-east1.run.app/v1/core \
        --serving-only \
        --golden-only \
-       --results-dir ./results/04-raw-core-gemma
+       --results-dir ./results/04-direct-core-gemma
 ```
 
 ---
