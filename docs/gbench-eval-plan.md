@@ -37,7 +37,7 @@ We deploy **2 Cloud Run backend services**:
 
 | Service ID | Host Architecture | `/v1` Path (Full Pipeline) | `/v1/core` Path (Direct Core Model) |
 | :--- | :--- | :--- | :--- |
-| **`backend-gemini`** | FastAPI + Gemini API (Vertex AI) | E2E System Latency (Gemini 3.7 Flash) | Pure TTFT/TPOT & Golden Capabilities (Gemini 3.7 Flash) |
+| **`backend-gemini`** | FastAPI + Gemini API (Google Agent Platform) | E2E System Latency (Gemini 3.7 Flash) | Pure TTFT/TPOT & Golden Capabilities (Gemini 3.7 Flash) |
 | **`backend-gemma`** | FastAPI + Embedded Ollama (`gemma4:e4b`) | E2E System Latency (Gemma 4 e4b) | Pure TTFT/TPOT & Golden Capabilities (Gemma 4 e4b) |
 
 ### ⚙️ Cloud Run Instance Right-Sizing
@@ -45,7 +45,7 @@ To ensure a fair Total Cost of Ownership (TCO) evaluation, each Cloud Run servic
 
 | Service ID | vCPU Allocation | Memory (RAM) | Rationale |
 | :--- | :--- | :--- | :--- |
-| **`backend-gemini`** | 2 vCPUs | 2 GiB | Lightweight API Gateway footprint calling external Gemini API. |
+| **`backend-gemini`** | 2 vCPUs | 2 GiB | Lightweight API Gateway footprint calling Google Agent Platform API. |
 | **`backend-gemma`** | 4 vCPUs | 8 GiB | Required for local `gemma4:e4b` model weights (~3.2 GB RAM) + multithreaded CPU decoding. |
 
 > [!NOTE]
