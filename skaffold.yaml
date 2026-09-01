@@ -6,10 +6,14 @@ build:
   local:
     push: false
   artifacts:
-    - image: backend-service
+    - image: backend-gemini-service
       context: backend
       docker:
         dockerfile: Dockerfile
+    - image: backend-gemma-service
+      context: backend
+      docker:
+        dockerfile: Dockerfile.gemma
     - image: catalog-mcp-server
       context: catalog-mcp
       docker:
@@ -20,7 +24,8 @@ build:
         dockerfile: Dockerfile
 manifests:
   rawYaml:
-    - k8s/backend.yaml
+    - k8s/backend-gemini.yaml
+    - k8s/backend-gemma.yaml
     - k8s/catalog-mcp.yaml
     - k8s/frontend.yaml
 deploy:
@@ -31,6 +36,10 @@ portForward:
     port: 3000
     localPort: 3000
   - resourceType: Service
-    resourceName: backend-service
+    resourceName: backend-gemini-service
     port: 8080
     localPort: 8080
+  - resourceType: Service
+    resourceName: backend-gemma-service
+    port: 8080
+    localPort: 8081

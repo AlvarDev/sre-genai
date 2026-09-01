@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-gemini-deployment
+  labels:
+    app: backend-gemini
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-gemini
+  template:
+    metadata:
+      labels:
+        app: backend-gemini
+    spec:
+      containers:
+        - name: backend-gemini
+          image: backend-gemini-service
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: MCP_SERVER_URL
+              value: "http://catalog-mcp-service:8001/mcp/sse"
+            - name: PROJECT_ID
+              value: "sre-demos"
+            - name: FIRESTORE_DATABASE
+              value: "sre-genai"
+            - name: CORE_MODEL
+              value: "gemini-3.7-flash"
+            - name: GUARDRAIL_MODEL
+              value: "gemini-3.5-flash-lite"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-gemini-service
+spec:
+  selector:
+    app: backend-gemini
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

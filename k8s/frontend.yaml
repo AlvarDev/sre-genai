@@ -23,8 +23,10 @@ spec:
           env:
             - name: PORT
               value: "3000"
-            - name: NUXT_BACKEND_URL
-              value: "http://backend-service:8080"
+            - name: NUXT_PUBLIC_BACKEND_GEMINI_URL
+              value: "http://localhost:8080"
+            - name: NUXT_PUBLIC_BACKEND_GEMMA_URL
+              value: "http://localhost:8081"
           envFrom:
             - secretRef:
                 name: frontend-env

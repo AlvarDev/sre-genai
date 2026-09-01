@@ -1,4 +1,6 @@
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
-  return proxyRequest(event, `${config.backendUrl}/chat`)
+  const target = getHeader(event, 'x-backend-target') || 'gemini'
+  const backendUrl = target === 'gemma' ? config.backendGemmaUrl : config.backendGeminiUrl
+  return proxyRequest(event, `${backendUrl}/chat`)
 })

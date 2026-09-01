@@ -1919,7 +1919,7 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.2.0" },
     { name = "opentelemetry-api", specifier = ">=1.18.0" },
     { name = "opentelemetry-exporter-gcp-monitoring", specifier = ">=1.6.0a0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.39b0" },
+    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.45b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.18.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },

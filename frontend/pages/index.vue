@@ -15,6 +15,18 @@
           <span class="brand-title">Store Assistant</span>
         </div>
         <div class="navbar-actions">
+          <div class="engine-toggle-group">
+            <button 
+              type="button"
+              :class="['engine-btn', selectedEngine === 'gemini' ? 'active' : '']" 
+              @click="selectedEngine = 'gemini'"
+            >✨ Gemini 3.7</button>
+            <button 
+              type="button"
+              :class="['engine-btn', selectedEngine === 'gemma' ? 'active' : '']" 
+              @click="selectedEngine = 'gemma'"
+            >⚡ Gemma 4</button>
+          </div>
           <button class="theme-toggle-btn" @click="toggleTheme" title="Alternar tema">
             <svg v-if="!isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-toggle-icon">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
@@ -207,6 +219,7 @@ const toggleTheme = () => {
 }
 
 // State Variables
+const selectedEngine = ref('gemini') // 'gemini' | 'gemma'
 const sessionId = ref('')
 const userUid = ref('')
 const authReady = ref(false)
@@ -384,6 +397,11 @@ const submitMessage = async () => {
       'Authorization': `Bearer ${token}`
     }
     
+    // Select direct backend URL based on toggle
+    const targetBackendUrl = selectedEngine.value === 'gemma' 
+      ? config.public.backendGemmaUrl 
+      : config.public.backendGeminiUrl
+    
     if (imageFile) {
       // Execute Visual Search upload via Multipart
       const formData = new FormData()
@@ -391,7 +409,7 @@ const submitMessage = async () => {
       formData.append('message', queryText)
       formData.append('session_id', sessionId.value)
       
-      const response = await fetch(`${backendUrl}/visual-search`, {
+      const response = await fetch(`${targetBackendUrl}/visual-search`, {
         method: 'POST',
         headers: headers,
         body: formData
@@ -401,7 +419,7 @@ const submitMessage = async () => {
       responseData = await response.json()
     } else {
       // Execute Text-based Chat via JSON
-      const response = await fetch(`${backendUrl}/chat`, {
+      const response = await fetch(`${targetBackendUrl}/chat`, {
         method: 'POST',
         headers: {
           ...headers,
@@ -502,6 +520,34 @@ const submitMessage = async () => {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.engine-toggle-group {
+  display: flex;
+  background-color: var(--bg-color-alt);
+  border: 1px solid var(--border-color-light);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.engine-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.engine-btn.active {
+  background-color: var(--panel-color);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
 }
 
 .theme-toggle-btn {
