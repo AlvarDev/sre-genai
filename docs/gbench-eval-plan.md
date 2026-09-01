@@ -38,7 +38,15 @@ We deploy **2 Cloud Run backend services**:
 | Service ID | Host Architecture | `/v1` Path (Full Pipeline) | `/v1/core` Path (Direct Core Model) |
 | :--- | :--- | :--- | :--- |
 | **`backend-gemini`** | FastAPI + Gemini API (Vertex AI) | E2E System Latency (Gemini Core) | Pure TTFT/TPOT & Golden Capabilities (Gemini 3.7 Flash) |
-| **`backend-gemma`** | FastAPI + Embedded Ollama (Gemma 4) | E2E System Latency (Gemma Core) | Pure TTFT/TPOT & Golden Capabilities (Gemma 4) |
+| **`backend-gemma`** | FastAPI + Embedded Ollama (`gemma4:e4b`) | E2E System Latency (Gemma Core) | Pure TTFT/TPOT & Golden Capabilities (Gemma 4 `gemma4:e4b`) |
+
+### ⚙️ Cloud Run Instance Right-Sizing
+To ensure a fair Total Cost of Ownership (TCO) evaluation, each Cloud Run service is right-sized to its operational footprint:
+
+| Service ID | vCPU Allocation | Memory (RAM) | Rationale |
+| :--- | :--- | :--- | :--- |
+| **`backend-gemini`** | 2 vCPUs | 2 GiB | Lightweight API Gateway footprint calling external Gemini API. |
+| **`backend-gemma`** | 4 vCPUs | 8 GiB | Required for local `gemma4:e4b` model weights (~3.2 GB RAM) + multithreaded CPU decoding. |
 
 > [!NOTE]
 > Holding the `GUARDRAIL_MODEL` constant (`gemini-3.5-flash-lite`) across Service 1 and Service 2 ensures that the **only variable changing in the full pipeline is the core LLM**, providing a clean A/B comparison of application response time.
