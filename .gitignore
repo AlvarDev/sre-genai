@@ -49,3 +49,7 @@ htmlcov/
 *.njsproj
 *.sln
 *.swp
+
+# Local AI Models
+models/
+*.gguf

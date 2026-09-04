@@ -9,6 +9,7 @@ from google.cloud import firestore as gcloud_firestore
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.exporter.cloud_monitoring import CloudMonitoringMetricsExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
@@ -16,9 +17,15 @@ provider = None
 
 try:
     export_interval_ms = int(os.getenv("OTEL_EXPORT_INTERVAL_MS", "60000"))
+    service_name = os.getenv("SERVICE_NAME", os.getenv("K_SERVICE", "backend-service"))
+    instance_id = os.getenv("HOSTNAME", "default-instance")
+    resource = Resource.create({
+        "service.name": service_name,
+        "service.instance.id": instance_id,
+    })
     exporter = CloudMonitoringMetricsExporter(project_id=os.getenv("PROJECT_ID"))
     reader = PeriodicExportingMetricReader(exporter, export_interval_millis=export_interval_ms)
-    provider = MeterProvider(metric_readers=[reader])
+    provider = MeterProvider(metric_readers=[reader], resource=resource)
     metrics.set_meter_provider(provider)
     print(f"OpenTelemetry Google Cloud Metrics Exporter initialized (Export Interval: {export_interval_ms}ms).")
 except Exception as e:

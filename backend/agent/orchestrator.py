@@ -5,6 +5,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.adk import Event
 from google.adk.models.google_llm import Gemini
+from google.adk.models.lite_llm import LiteLlm
 from google.genai import Client, types
 from opentelemetry import metrics
 
@@ -23,16 +24,30 @@ prompt_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "system_p
 with open(prompt_path, "r", encoding="utf-8") as f:
     system_instruction = f.read()
 
-# Setup the Gemini model connection
+# Setup the LLM model connection
 model_name = os.getenv("CORE_MODEL", "gemini-3.7-flash")
-gemini_model = Gemini(
-    model=model_name,
-    client_kwargs={
-        "vertexai": True,
-        "project": project_id,
-        "location": location
-    }
-)
+if "gemma" in model_name.lower():
+    inference_endpoint = os.getenv("INFERENCE_ENDPOINT")
+    if inference_endpoint:
+        gemini_model = LiteLlm(
+            model=f"openai/{model_name}",
+            api_base=inference_endpoint,
+            api_key="local"
+        )
+    else:
+        gemini_model = LiteLlm(
+            model=f"ollama_chat/{model_name}",
+            api_base=os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        )
+else:
+    gemini_model = Gemini(
+        model=model_name,
+        client_kwargs={
+            "vertexai": True,
+            "project": project_id,
+            "location": location
+        }
+    )
 
 # Shared GenAI Client for raw operations (e.g. embeddings)
 us_client = Client(vertexai=True, project=project_id, location="us")

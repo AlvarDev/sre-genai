@@ -1,54 +1,54 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: serving.knative.dev/v1
+kind: Service
 metadata:
-  name: backend-gemma-deployment
+  name: backend-gemma
   labels:
-    app: backend-gemma
+    cloud.googleapis.com/location: southamerica-east1
+  annotations:
+    run.googleapis.com/launch-stage: GA
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: backend-gemma
   template:
     metadata:
-      labels:
-        app: backend-gemma
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
     spec:
+      serviceAccountName: backend-sa@sre-demos.iam.gserviceaccount.com
+      volumes:
+        - name: gemma-models-volume
+          csi:
+            driver: gcsfuse.run.googleapis.com
+            readOnly: true
+            volumeAttributes:
+              bucketName: sre-demos-files
       containers:
-        - name: backend-gemma
-          image: backend-service:latest
-          imagePullPolicy: IfNotPresent
+        # Ingress Container: FastAPI Backend
+        - name: backend-service
+          image: southamerica-east1-docker.pkg.dev/sre-demos/sre-genai/backend-service:latest
           ports:
             - containerPort: 8080
           resources:
-            requests:
-              cpu: "500m"
-              memory: "512Mi"
             limits:
               cpu: "1000m"
-              memory: "1Gi"
+              memory: "2Gi"
           env:
-            - name: PORT
-              value: "8080"
-            - name: SERVICE_NAME
-              value: "backend-gemma"
-            - name: MCP_SERVER_URL
-              value: "http://catalog-mcp-service:8001/mcp/sse"
             - name: PROJECT_ID
               value: "sre-demos"
+            - name: LOCATION
+              value: "us"
             - name: FIRESTORE_DATABASE
               value: "sre-genai"
+            - name: MCP_SERVER_URL
+              value: "https://catalog-mcp-server-1010474272420.southamerica-east1.run.app/mcp/sse"
             - name: CORE_MODEL
               value: "gemma-4-e2b"
             - name: GUARDRAIL_MODEL
               value: "gemini-3.5-flash-lite"
             - name: INFERENCE_ENDPOINT
               value: "http://localhost:11434/v1"
+        # Sidecar Container: Gemma 4 E2B Inference Engine
         - name: inference-sidecar
           image: southamerica-east1-docker.pkg.dev/sre-demos/sre-genai/llama-server:latest
-          imagePullPolicy: IfNotPresent
           args:
             - "-m"
             - "/models/gemma-4-E2B-it-Q4_K_M.gguf"
@@ -63,7 +63,7 @@ spec:
             - "--port"
             - "11434"
             - "--threads"
-            - "4"
+            - "3"
             - "--temp"
             - "1.0"
             - "--top-p"
@@ -72,36 +72,18 @@ spec:
             - "64"
             - "--reasoning"
             - "off"
-          readinessProbe:
+          startupProbe:
             httpGet:
               path: /health
               port: 11434
             initialDelaySeconds: 2
-            periodSeconds: 3
+            periodSeconds: 2
+            failureThreshold: 30
             timeoutSeconds: 2
           resources:
-            requests:
-              cpu: "1000m"
-              memory: "2500Mi"
             limits:
               cpu: "3000m"
-              memory: "4000Mi"
+              memory: "6Gi"
           volumeMounts:
             - name: gemma-models-volume
               mountPath: /models
-      volumes:
-        - name: gemma-models-volume
-          hostPath:
-            path: /var/models
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend-gemma-service
-spec:
-  selector:
-    app: backend-gemma
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080

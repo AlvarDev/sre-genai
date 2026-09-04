@@ -6,14 +6,10 @@ build:
   local:
     push: false
   artifacts:
-    - image: backend-gemini-service
+    - image: backend-service
       context: backend
       docker:
         dockerfile: Dockerfile
-    - image: backend-gemma-service
-      context: backend
-      docker:
-        dockerfile: Dockerfile.gemma
     - image: catalog-mcp-server
       context: catalog-mcp
       docker:

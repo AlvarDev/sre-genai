@@ -16,13 +16,15 @@ spec:
     spec:
       containers:
         - name: backend-gemini
-          image: backend-gemini-service
+          image: backend-service
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:
             - name: PORT
               value: "8080"
+            - name: SERVICE_NAME
+              value: "backend-gemini"
             - name: MCP_SERVER_URL
               value: "http://catalog-mcp-service:8001/mcp/sse"
             - name: PROJECT_ID

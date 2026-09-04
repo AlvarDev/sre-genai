@@ -1,5 +1,5 @@
 # ⚡ `gbench` Evaluation Plan: Google Store Assistant
-### Comparing Gemini 3.7 Flash (Cloud Agent Platform) vs. Gemma 4 (Self-Hosted Compute)
+### Comparing Gemini 3.7 Flash (Managed API) vs. Gemma 4 E2B (Cloud Run Multi-Container)
 
 ---
 
@@ -8,8 +8,8 @@
 This evaluation plan benchmarks the **Google Store Multimodal Virtual Assistant**—an enterprise demonstration platform combining Multimodal RAG (`gemini-embedding-2`), Model Context Protocol (`FastMCP` over SSE), dual-layer guardrails, and Site Reliability Engineering (SRE) observability on Google Cloud Run.
 
 The primary objective is to conduct a rigorous comparison between two architecture patterns:
-1. **Managed Cloud API**: `Gemini 3.7 Flash` via **Google Agent Platform**.
-2. **Self-Hosted Compute**: `Gemma 4` (specifically `gemma4:e4b`) hosted on Cloud Run.
+1. **Managed Cloud API**: `Gemini 3.7 Flash` via **Google Agent Platform / Vertex AI**.
+2. **Self-Hosted Compute**: `Gemma 4` (`unsloth/gemma-4-E2B-it-GGUF` Q4_K_M) deployed via a **Multi-Container Sidecar with GCS Volume Mount** on Cloud Run.
 
 ---
 
@@ -38,15 +38,22 @@ We deploy **2 Cloud Run backend services**:
 | Service ID | Host Architecture | `/v1` Path (Full Pipeline) | `/v1/core` Path (Direct Core Model) |
 | :--- | :--- | :--- | :--- |
 | **`backend-gemini`** | FastAPI + Gemini API (Google Agent Platform) | E2E System Latency (Gemini 3.7 Flash) | Pure TTFT/TPOT & Golden Capabilities (Gemini 3.7 Flash) |
-| **`backend-gemma`** | FastAPI + Embedded Ollama (`gemma4:e4b`) | E2E System Latency (Gemma 4 e4b) | Pure TTFT/TPOT & Golden Capabilities (Gemma 4 e4b) |
+| **`backend-gemma`** | Multi-Container: FastAPI + `llama-server` Sidecar (`gemma-4-E2B-it-GGUF`) | E2E System Latency (Gemma 4 E2B) | Pure TTFT/TPOT & Golden Capabilities (Gemma 4 E2B) |
 
 ### ⚙️ Cloud Run Instance Right-Sizing
 To ensure a fair Total Cost of Ownership (TCO) evaluation, each Cloud Run service is right-sized to its operational footprint:
 
-| Service ID | vCPU Allocation | Memory (RAM) | Rationale |
-| :--- | :--- | :--- | :--- |
-| **`backend-gemini`** | 2 vCPUs | 2 GiB | Lightweight API Gateway footprint calling Google Agent Platform API. |
-| **`backend-gemma`** | 4 vCPUs | 8 GiB | Required for local `gemma4:e4b` model weights (~3.2 GB RAM) + multithreaded CPU decoding. |
+| Service ID | vCPU | RAM | Flags / Storage | Rationale |
+| :--- | :--- | :--- | :--- | :--- |
+| **`backend-gemini`** | 2 vCPUs | 2 GiB | `--no-cpu-throttling` | Lightweight API Gateway footprint calling Vertex AI API + background OpenTelemetry metric exporter. |
+| **`backend-gemma`** | 4 vCPUs | 8 GiB | `--no-cpu-throttling`, GCS Mount (`/models`) | Multi-container pod (FastAPI + inference sidecar) reading `gemma-4-E2B-it-Q4_K_M.gguf` (2.89 GiB) directly from Cloud Storage via `gcsfuse`. |
+
+### 🎛️ Gemma 4 Runtime Flags & Operational Parameters
+To guarantee consistent latency and prevent reasoning tokens from polluting conversational state:
+* **Loading Strategy**: In-memory execution via `--load-mode none` (pre-loads weights via sequential `fread()`, preventing network/FUSE page-fault latency during token generation).
+* **Context Sizing**: Constrained via `-c 4096` and `-np 1` (avoids allocating model default 131k token KV cache on CPU).
+* **Reasoning Mode**: Disabled via `--reasoning off` to eliminate `<|channel>thought` leaks into multi-turn chat history.
+* **Sampling**: Pinned to Google defaults (`temperature: 1.0`, `top_p: 0.95`, `top_k: 64`).
 
 > [!NOTE]
 > Holding the `GUARDRAIL_MODEL` constant (`gemini-3.5-flash-lite`) across `backend-gemini` and `backend-gemma` ensures that the **only variable changing in the full pipeline is the core LLM**, providing a clean A/B comparison of application response time.
@@ -66,7 +73,7 @@ gbench --remote-endpoint https://backend-gemini-....southamerica-east1.run.app/v
        --serving-only \
        --results-dir ./results/01-full-pipeline-gemini
 
-# Test 2: Full Pipeline (Gemma 4 e4b)
+# Test 2: Full Pipeline (Gemma 4 E2B)
 gbench --remote-endpoint https://backend-gemma-....southamerica-east1.run.app/v1 \
        --serving-only \
        --results-dir ./results/02-full-pipeline-gemma
@@ -84,7 +91,7 @@ gbench --remote-endpoint https://backend-gemini-....southamerica-east1.run.app/v
        --golden-only \
        --results-dir ./results/03-direct-core-gemini
 
-# Test 4: Direct Core Model (Gemma 4 e4b)
+# Test 4: Direct Core Model (Gemma 4 E2B)
 gbench --remote-endpoint https://backend-gemma-....southamerica-east1.run.app/v1/core \
        --serving-only \
        --golden-only \
@@ -103,4 +110,4 @@ The generated `summary.json` result traces will be cross-analyzed across three t
 2. **Capability Invariant Pass Rate**:
    - Golden Set pass rates on tool calling, JSON schema generation, and reasoning invariants from Direct Core Model tests (Test 3 & Test 4 via `/v1/core`).
 3. **Total Cost of Ownership (TCO)**:
-   - Gemini 3.7 Flash pay-per-token API cost vs. Gemma 4 Cloud Run scale-to-zero compute cost.
+   - Gemini 3.7 Flash pay-per-token API cost vs. Gemma 4 E2B Cloud Run compute cost.
