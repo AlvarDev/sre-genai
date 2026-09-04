@@ -56,5 +56,19 @@ steps:
         sed -i "s|PROJECT_NUMBER_PLACEHOLDER|$PROJECT_NUMBER|g" backend/cloudrun-gemma.yaml
         gcloud run services replace backend/cloudrun-gemma.yaml --region=southamerica-east1
 
+  # 5. Grant Public Ingress to backend-gemma (allUsers -> roles/run.invoker)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'authorize-backend-gemma'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'services'
+      - 'add-iam-policy-binding'
+      - 'backend-gemma'
+      - '--region=southamerica-east1'
+      - '--member=allUsers'
+      - '--role=roles/run.invoker'
+
 images:
   - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service:$COMMIT_SHA'
+
