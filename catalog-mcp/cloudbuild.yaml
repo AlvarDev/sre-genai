@@ -1,0 +1,36 @@
+steps:
+  # 1. Build Container Image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-catalog-mcp'
+    args:
+      - 'build'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/catalog-mcp-server:$COMMIT_SHA'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/catalog-mcp-server:latest'
+      - './catalog-mcp'
+
+  # 2. Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-catalog-mcp'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/catalog-mcp-server'
+
+  # 3. Deploy to Cloud Run (Private Ingress, Service Account auth)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-catalog-mcp'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'catalog-mcp-server'
+      - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/catalog-mcp-server:$COMMIT_SHA'
+      - '--region=southamerica-east1'
+      - '--no-allow-unauthenticated'
+      - '--service-account=catalog-mcp-sa@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,LOCATION=us,FIRESTORE_DATABASE=sre-genai'
+
+images:
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/catalog-mcp-server:$COMMIT_SHA'

@@ -10,8 +10,10 @@ from mcp.client.sse import sse_client
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("mcp-client")
 
-# Get MCP Server URL from environment (default to local dev URL)
-mcp_server_url = os.getenv("MCP_SERVER_URL", "http://localhost:8001/mcp/sse")
+# Get MCP Server URL from environment
+mcp_server_url = os.getenv("MCP_SERVER_URL")
+if not mcp_server_url:
+    raise RuntimeError("MCP_SERVER_URL environment variable is required but not set.")
 
 
 class OIDCTokenCache:

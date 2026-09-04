@@ -4,8 +4,8 @@ export default defineNuxtConfig({
     public: {
       // Standard Firebase Project keys
       firebaseApiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || "",
-      firebaseProjectId: process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || "sre-genai",
-      firebaseAuthDomain: process.env.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "sre-genai.firebaseapp.com",
+      firebaseProjectId: process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+      firebaseAuthDomain: process.env.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
       backendGeminiUrl: process.env.NUXT_PUBLIC_BACKEND_GEMINI_URL || "http://localhost:8080",
       backendGemmaUrl: process.env.NUXT_PUBLIC_BACKEND_GEMMA_URL || "http://localhost:8081"
     }

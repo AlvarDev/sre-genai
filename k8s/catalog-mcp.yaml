@@ -24,7 +24,10 @@ spec:
             - name: PORT
               value: "8001"
             - name: PROJECT_ID
-              value: "sre-demos"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PROJECT_ID
             - name: LOCATION
               value: "us"
             - name: FIRESTORE_DATABASE

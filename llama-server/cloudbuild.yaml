@@ -1,0 +1,22 @@
+steps:
+  # 1. Build and Tag llama-server Sidecar
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-llama-server'
+    args:
+      - 'build'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/llama-server:$COMMIT_SHA'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/llama-server:latest'
+      - './llama-server'
+
+  # 2. Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-llama-server'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/llama-server'
+
+images:
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/llama-server:$COMMIT_SHA'

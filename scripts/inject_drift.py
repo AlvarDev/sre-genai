@@ -3,7 +3,11 @@ from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
 
 # 1. Initialize Firestore Client
-db = firestore.Client(database="sre-genai")
+project_id = os.getenv("PROJECT_ID")
+database_id = os.getenv("FIRESTORE_DATABASE")
+if not project_id or not database_id:
+    raise RuntimeError("PROJECT_ID and FIRESTORE_DATABASE environment variables are required.")
+db = firestore.Client(project=project_id, database=database_id)
 
 # 2. Define the off-topic grocery items to inject/remove
 grocery_items = [
@@ -43,7 +47,7 @@ def inject_database_drift():
         # Generate real semantic vector embedding using gemini-embedding-2
         try:
             from google.genai import Client, types
-            client = Client(vertexai=True, project=os.getenv("PROJECT_ID", "sre-demos"), location="us")
+            client = Client(vertexai=True, project=project_id, location="us")
             res = client.models.embed_content(
                 model="gemini-embedding-2",
                 contents=combined_text,

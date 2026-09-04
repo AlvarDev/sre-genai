@@ -37,7 +37,10 @@ spec:
             - name: MCP_SERVER_URL
               value: "http://catalog-mcp-service:8001/mcp/sse"
             - name: PROJECT_ID
-              value: "sre-demos"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PROJECT_ID
             - name: FIRESTORE_DATABASE
               value: "sre-genai"
             - name: CORE_MODEL

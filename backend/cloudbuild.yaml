@@ -1,0 +1,60 @@
+steps:
+  # [COMMENTED OUT] Reserved for automated evaluation gate demo:
+  # - name: 'python:3.11-slim'
+  #   id: 'agent-evaluation-gate'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       pip install --no-cache-dir uv
+  #       uv sync --project backend/ --frozen
+  #       backend/.venv/bin/python scripts/eval_test.py
+
+  # 1. Build Unified Backend Image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend-service'
+    args:
+      - 'build'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service:$COMMIT_SHA'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service:latest'
+      - './backend'
+
+  # 2. Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend-service'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service'
+
+  # 3. Deploy backend-gemini (Managed Vertex AI API)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend-gemini'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'backend-gemini'
+      - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service:$COMMIT_SHA'
+      - '--region=southamerica-east1'
+      - '--allow-unauthenticated'
+      - '--no-cpu-throttling'
+      - '--service-account=backend-sa@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,LOCATION=us,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.7-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,SERVICE_NAME=backend-gemini,MCP_SERVER_URL=https://catalog-mcp-server-$PROJECT_NUMBER.southamerica-east1.run.app/mcp/sse'
+
+  # 4. Deploy backend-gemma (Declarative Multi-Container Sidecar + GCS FUSE Mount)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend-gemma'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        sed -i "s|backend-service:latest|backend-service:$COMMIT_SHA|g" backend/cloudrun-gemma.yaml
+        sed -i "s|PROJECT_ID_PLACEHOLDER|$PROJECT_ID|g" backend/cloudrun-gemma.yaml
+        sed -i "s|PROJECT_NUMBER_PLACEHOLDER|$PROJECT_NUMBER|g" backend/cloudrun-gemma.yaml
+        gcloud run services replace backend/cloudrun-gemma.yaml --region=southamerica-east1
+
+images:
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service:$COMMIT_SHA'

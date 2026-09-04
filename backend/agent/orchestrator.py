@@ -28,17 +28,13 @@ with open(prompt_path, "r", encoding="utf-8") as f:
 model_name = os.getenv("CORE_MODEL", "gemini-3.7-flash")
 if "gemma" in model_name.lower():
     inference_endpoint = os.getenv("INFERENCE_ENDPOINT")
-    if inference_endpoint:
-        gemini_model = LiteLlm(
-            model=f"openai/{model_name}",
-            api_base=inference_endpoint,
-            api_key="local"
-        )
-    else:
-        gemini_model = LiteLlm(
-            model=f"ollama_chat/{model_name}",
-            api_base=os.getenv("OLLAMA_HOST", "http://localhost:11434")
-        )
+    if not inference_endpoint:
+        raise RuntimeError("INFERENCE_ENDPOINT environment variable is required when using a Gemma model.")
+    gemini_model = LiteLlm(
+        model=f"openai/{model_name}",
+        api_base=inference_endpoint,
+        api_key="local"
+    )
 else:
     gemini_model = Gemini(
         model=model_name,

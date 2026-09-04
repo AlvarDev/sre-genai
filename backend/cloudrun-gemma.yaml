@@ -13,18 +13,18 @@ spec:
         run.googleapis.com/cpu-throttling: "false"
         run.googleapis.com/execution-environment: gen2
     spec:
-      serviceAccountName: backend-sa@sre-demos.iam.gserviceaccount.com
+      serviceAccountName: backend-sa@PROJECT_ID_PLACEHOLDER.iam.gserviceaccount.com
       volumes:
         - name: gemma-models-volume
           csi:
             driver: gcsfuse.run.googleapis.com
             readOnly: true
             volumeAttributes:
-              bucketName: sre-demos-files
+              bucketName: PROJECT_ID_PLACEHOLDER-files
       containers:
         # Ingress Container: FastAPI Backend
         - name: backend-service
-          image: southamerica-east1-docker.pkg.dev/sre-demos/sre-genai/backend-service:latest
+          image: southamerica-east1-docker.pkg.dev/PROJECT_ID_PLACEHOLDER/sre-genai/backend-service:latest
           ports:
             - containerPort: 8080
           resources:
@@ -33,13 +33,13 @@ spec:
               memory: "2Gi"
           env:
             - name: PROJECT_ID
-              value: "sre-demos"
+              value: "PROJECT_ID_PLACEHOLDER"
             - name: LOCATION
               value: "us"
             - name: FIRESTORE_DATABASE
               value: "sre-genai"
             - name: MCP_SERVER_URL
-              value: "https://catalog-mcp-server-1010474272420.southamerica-east1.run.app/mcp/sse"
+              value: "https://catalog-mcp-server-PROJECT_NUMBER_PLACEHOLDER.southamerica-east1.run.app/mcp/sse"
             - name: CORE_MODEL
               value: "gemma-4-e2b"
             - name: GUARDRAIL_MODEL
@@ -48,7 +48,7 @@ spec:
               value: "http://localhost:11434/v1"
         # Sidecar Container: Gemma 4 E2B Inference Engine
         - name: inference-sidecar
-          image: southamerica-east1-docker.pkg.dev/sre-demos/sre-genai/llama-server:latest
+          image: southamerica-east1-docker.pkg.dev/PROJECT_ID_PLACEHOLDER/sre-genai/llama-server:latest
           args:
             - "-m"
             - "/models/gemma-4-E2B-it-Q4_K_M.gguf"

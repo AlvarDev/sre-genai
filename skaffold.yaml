@@ -25,7 +25,11 @@ manifests:
     - k8s/catalog-mcp.yaml
     - k8s/frontend.yaml
 deploy:
-  kubectl: {}
+  kubectl:
+    hooks:
+      before:
+        - host:
+            command: ["sh", "-c", "kubectl create configmap app-config --from-literal=PROJECT_ID=$(gcloud config get-value project 2>/dev/null) --dry-run=client -o yaml | kubectl apply -f -"]
 portForward:
   - resourceType: Service
     resourceName: frontend-service

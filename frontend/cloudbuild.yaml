@@ -1,0 +1,35 @@
+steps:
+  # 1. Build Nuxt Frontend
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend-service'
+    args:
+      - 'build'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/frontend-service:$COMMIT_SHA'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/frontend-service:latest'
+      - './frontend'
+
+  # 2. Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend-service'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/frontend-service'
+
+  # 3. Deploy Nuxt Frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-frontend-service'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'frontend-service'
+      - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/frontend-service:$COMMIT_SHA'
+      - '--region=southamerica-east1'
+      - '--allow-unauthenticated'
+      - '--service-account=frontend-sa@$PROJECT_ID.iam.gserviceaccount.com'
+
+images:
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/frontend-service:$COMMIT_SHA'

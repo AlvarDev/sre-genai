@@ -9,7 +9,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backen
 from agent.orchestrator import run_text_chat
 
 # 1. Initialize Vertex AI
-project_id = os.getenv("PROJECT_ID", "sre-genai")
+project_id = os.getenv("PROJECT_ID")
+if not project_id:
+    raise RuntimeError("PROJECT_ID environment variable is required but not set.")
 location = os.getenv("LOCATION", "us-central1")
 vertexai.init(project=project_id, location=location)
 
