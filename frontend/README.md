@@ -25,12 +25,15 @@ Vue 3 / Nuxt 3 frontend application presenting the Google Store Virtual Shopping
 
 ## 🔑 Local Development Secrets Setup
 
-For local Minikube development, create the Kubernetes secret before running `skaffold dev`:
+Retrieve your Firebase Web API Key from the [Firebase Console](https://console.firebase.google.com/) (Project Settings > General > Your apps) and create the Kubernetes Secret before running `skaffold dev`:
 
 ```bash
+export FIREBASE_API_KEY="<YOUR_FIREBASE_WEB_API_KEY>"
+export PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+
 kubectl create secret generic frontend-env \
-  --from-literal=NUXT_PUBLIC_FIREBASE_API_KEY="YOUR_ACTUAL_FIREBASE_API_KEY" \
-  --from-literal=NUXT_PUBLIC_FIREBASE_PROJECT_ID="YOUR_PROJECT_ID" \
-  --from-literal=NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN="YOUR_PROJECT_ID.firebaseapp.com" \
+  --from-literal=NUXT_PUBLIC_FIREBASE_API_KEY="$FIREBASE_API_KEY" \
+  --from-literal=NUXT_PUBLIC_FIREBASE_PROJECT_ID="$PROJECT_ID" \
+  --from-literal=NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN="${PROJECT_ID}.firebaseapp.com" \
   --dry-run=client -o yaml | kubectl apply -f -
 ```

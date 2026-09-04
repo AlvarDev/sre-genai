@@ -65,6 +65,7 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 ## 📚 Documentation Index
 
 * 🚀 **[Cloud Run Deployment Guide](docs/deployment-cloudrun.md)**: Backend service build and deployment parameters (`--no-cpu-throttling`, environment models).
+* ☸️ **[Minikube Local Development Guide](docs/deployment-minikube.md)**: Sizing flags (`--cpus 6 --memory 7200m`), GCP auth addon, ext4 model storage, and Skaffold workflow.
 * 🧪 **[Backend Testing Guide](docs/testing-backend.md)**: Local testing workflows with Firebase Auth Emulator and `curl`.
 * ⚡ **[Catalog MCP Testing Guide](docs/testing-mcp.md)**: Manual JSON-RPC 2.0 SSE protocol testing for catalog tools.
 * 📦 **Microservice Specs**:
@@ -82,9 +83,21 @@ npx -y firebase-tools@latest emulators:start --only auth
 ```
 
 ### Deploying via Kubernetes (Minikube & Skaffold)
-```bash
-skaffold run
-```
+
+1. **Start Minikube with required sizing & GCP Auth**:
+   ```bash
+   minikube start --driver=docker --cpus=6 --memory=7200m --addons=gcp-auth
+   ```
+2. **Provision local model weights into Minikube storage**:
+   ```bash
+   minikube ssh "sudo mkdir -p /var/models && sudo chown -R docker:docker /var/models"
+   minikube cp models/gemma-4-E2B-it-Q4_K_M.gguf /var/models/gemma-4-E2B-it-Q4_K_M.gguf
+   ```
+3. **Start Skaffold dev loop**:
+   ```bash
+   skaffold dev
+   ```
+   *(See [Minikube Local Development Guide](docs/deployment-minikube.md) for complete setup instructions).*
 
 ### Production Deployment to Cloud Run
 ```bash
