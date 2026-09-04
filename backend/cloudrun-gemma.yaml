@@ -63,7 +63,7 @@ spec:
             - "--port"
             - "11434"
             - "--threads"
-            - "3"
+            - "4"
             - "--temp"
             - "1.0"
             - "--top-p"
@@ -82,7 +82,7 @@ spec:
             timeoutSeconds: 2
           resources:
             limits:
-              cpu: "3000m"
+              cpu: "4000m"
               memory: "6Gi"
           volumeMounts:
             - name: gemma-models-volume
