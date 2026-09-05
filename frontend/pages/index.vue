@@ -24,17 +24,19 @@
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41-1.41"/>
             </svg>
           </button>
-          <button 
-            v-if="isAdmin" 
-            type="button" 
-            class="admin-menu-btn" 
-            @click="showSettingsModal = true" 
-            title="Mais opções"
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-            </svg>
-          </button>
+          <transition name="admin-btn-slide">
+            <button 
+              v-if="isAdmin" 
+              type="button" 
+              class="admin-menu-btn" 
+              @click="showSettingsModal = true" 
+              title="Mais opções"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+              </svg>
+            </button>
+          </transition>
         </div>
       </div>
     </header>
@@ -762,10 +764,10 @@ const submitMessage = async () => {
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
 }
 
 .admin-menu-btn {
+  margin-left: 12px;
   background: transparent;
   border: none;
   color: var(--text-secondary);
@@ -1113,6 +1115,22 @@ const submitMessage = async () => {
   background-color: var(--bg-color-alt);
   color: #ea4335;
   border-color: #ea4335;
+}
+
+/* Smooth Unfolding Transition for Admin Icon */
+.admin-btn-slide-enter-active, .admin-btn-slide-leave-active {
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 40px;
+  overflow: hidden;
+}
+.admin-btn-slide-enter-from, .admin-btn-slide-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+  max-width: 0;
+  margin-left: 0;
 }
 
 /* Android Toast Pill Easter Egg */
@@ -1830,14 +1848,14 @@ const submitMessage = async () => {
     padding-left: 8px;
   }
   
-  .navbar-actions {
-    gap: 8px;
-  }
-  
   .theme-toggle-btn,
   .admin-menu-btn {
     width: 36px;
     height: 36px;
+  }
+
+  .admin-menu-btn {
+    margin-left: 8px;
   }
 
   .sheet-content {
