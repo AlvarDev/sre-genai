@@ -55,7 +55,7 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 * `catalog-mcp/`: FastMCP server running over SSE transport for Firestore vector search.
 * `frontend/`: Nuxt 3 / Vue 3 web interface with Google brand palette and Firebase anonymous authentication.
 * `docs/`: Technical guides for architecture, Cloud Run deployment, and microservice testing.
-* `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), and CI/CD quality gate (`eval_test.py`).
+* `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), CI/CD quality gate (`eval_test.py`), and admin claims (`manage_admin_claims.py`).
 * `k8s/`: Kubernetes deployment and service manifests for Minikube deployment.
 * `dashboards/`: Cloud Monitoring dashboard definition for token consumption and guardrail metrics.
 * `cloudbuild.yaml`: GCP Cloud Build pipeline definition.
@@ -81,6 +81,20 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 ```bash
 npx -y firebase-tools@latest emulators:start --only auth
 ```
+
+### 🔑 Presenter Admin Mode & Model Switcher
+Public attendees default to Vertex AI (Gemini). To unlock the settings drawer and switch to local sidecar inference (Gemma):
+
+1. **Manage Admin Claim**:
+   ```bash
+   # Grant admin access
+   uv run scripts/manage_admin_claims.py --project-id sre-demos --email <your-email> --grant
+
+   # Inspect claims: --list | Revoke claims: --revoke
+   ```
+
+2. **Activate in Browser**:
+   Tap the Google logo **7 times** to trigger the developer Easter egg, sign in with your Google account, and use the three-dots menu (`⋮`) to switch models.
 
 ### Deploying via Kubernetes (Minikube & Skaffold)
 

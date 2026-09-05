@@ -373,10 +373,16 @@ const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider()
     const result = await signInWithPopup(authInstance, provider)
     const user = result.user
-    adminUserEmail.value = user.email || ''
-    isAdmin.value = true
-    showAdminAuthModal.value = false
-    showSettingsModal.value = true
+    const tokenResult = await user.getIdTokenResult(true)
+    if (tokenResult.claims && tokenResult.claims.sre_genai_admin === true) {
+      adminUserEmail.value = user.email || ''
+      isAdmin.value = true
+      showAdminAuthModal.value = false
+    } else {
+      isAdmin.value = false
+      authError.value = 'Access Denied: Missing sre_genai_admin role claim.'
+      await logoutAdmin()
+    }
   } catch (err) {
     console.error('Google Sign-In failed:', err)
     authError.value = err.message || 'Failed to authenticate with Google.'
@@ -445,11 +451,20 @@ const initAuth = async () => {
     
     onAuthStateChanged(authInstance, async (user) => {
       if (user && !user.isAnonymous) {
-        userUid.value = user.uid
-        adminUserEmail.value = user.email || ''
-        isAdmin.value = true
-        authReady.value = true
-        console.log(`Admin authenticated with UID: ${userUid.value}, email: ${adminUserEmail.value}`)
+        const tokenResult = await user.getIdTokenResult(true)
+        if (tokenResult.claims && tokenResult.claims.sre_genai_admin === true) {
+          userUid.value = user.uid
+          adminUserEmail.value = user.email || ''
+          isAdmin.value = true
+          authReady.value = true
+          console.log(`Admin authenticated with UID: ${userUid.value}, email: ${adminUserEmail.value}`)
+        } else {
+          userUid.value = user.uid
+          adminUserEmail.value = ''
+          isAdmin.value = false
+          authReady.value = true
+          console.log(`Non-admin Google user signed in, keeping admin mode disabled.`)
+        }
       } else if (user) {
         userUid.value = user.uid
         adminUserEmail.value = ''
