@@ -30,6 +30,8 @@ steps:
       - '--region=southamerica-east1'
       - '--allow-unauthenticated'
       - '--service-account=frontend-sa@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--set-env-vars=NUXT_PUBLIC_FIREBASE_PROJECT_ID=$PROJECT_ID,NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$PROJECT_ID.firebaseapp.com,NUXT_PUBLIC_BACKEND_GEMINI_URL=https://backend-gemini-$PROJECT_NUMBER.southamerica-east1.run.app,NUXT_PUBLIC_BACKEND_GEMMA_URL=https://backend-gemma-$PROJECT_NUMBER.southamerica-east1.run.app'
+      - '--set-secrets=NUXT_PUBLIC_FIREBASE_API_KEY=firebase-web-api-key:latest'
 
 images:
   - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/frontend-service:$COMMIT_SHA'
