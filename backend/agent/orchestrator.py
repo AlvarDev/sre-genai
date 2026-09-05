@@ -30,13 +30,13 @@ if "gemma" in model_name.lower():
     inference_endpoint = os.getenv("INFERENCE_ENDPOINT")
     if not inference_endpoint:
         raise RuntimeError("INFERENCE_ENDPOINT environment variable is required when using a Gemma model.")
-    gemini_model = LiteLlm(
+    core_model = LiteLlm(
         model=f"openai/{model_name}",
         api_base=inference_endpoint,
         api_key="local"
     )
 else:
-    gemini_model = Gemini(
+    core_model = Gemini(
         model=model_name,
         client_kwargs={
             "vertexai": True,
@@ -67,14 +67,14 @@ async def search_store_catalog(query_text: str) -> str:
 
 store_assistant_agent = Agent(
     name="store_assistant",
-    model=gemini_model,
+    model=core_model,
     instruction=system_instruction,
     tools=[search_store_catalog]
 )
 
 grounding_agent = Agent(
     name="grounding_agent",
-    model=gemini_model,
+    model=core_model,
     instruction=system_instruction
 )
 
