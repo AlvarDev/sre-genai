@@ -94,6 +94,20 @@ Launch Skaffold to automatically build images, apply manifests, and establish po
 skaffold dev
 ```
 
+### ⚡ Fast Frontend UI Development (Hybrid Mode)
+To iterate on the Nuxt frontend with instant Hot Module Replacement (HMR) without waiting for container rebuilds:
+
+1. **Start only the backends and MCP server in Minikube:**
+   ```bash
+   skaffold dev -p backends-only
+   ```
+   *(Leaves port 3000 unallocated and forwards Gemini to `localhost:8080` and Gemma to `localhost:8081`).*
+
+2. **Start the Nuxt dev server natively on your host:**
+   ```bash
+   cd frontend && yarn dev
+   ```
+
 ### Local Access Endpoints:
 * **Frontend Web Application**: [http://localhost:3000](http://localhost:3000)
 * **Gemini Agent Backend**: [http://localhost:8080](http://localhost:8080) (`/docs` for Swagger UI)

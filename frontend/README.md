@@ -37,3 +37,29 @@ kubectl create secret generic frontend-env \
   --from-literal=NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN="${PROJECT_ID}.firebaseapp.com" \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+---
+
+## 💻 Local Frontend Development (Instant Vite HMR)
+
+For visual and UI changes, run Nuxt natively on your machine to take advantage of sub-50ms Hot Module Replacement (HMR) without rebuilding Docker containers:
+
+### Pre-configured Environment Profiles
+Both files are pre-configured and ignored by Git:
+* `.env.local`: Connects to local Minikube backends (`http://localhost:8080` & `http://localhost:8081`).
+* `.env.cloud.local`: Connects to live Cloud Run backends.
+
+### Commands
+
+* **Develop with Local Minikube Backends ($0.00 compute cost):**
+  ```bash
+  yarn dev
+  ```
+  *Executes `nuxt dev --dotenv .env.local`. Requires backends running via `skaffold dev -p backends-only`.*
+
+* **Develop with Live Cloud Run Backends (No Minikube/RAM strain):**
+  ```bash
+  yarn dev:cloud
+  ```
+  *Executes `nuxt dev --dotenv .env.cloud.local`. Connects directly to GCP services.*
+
