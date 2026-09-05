@@ -29,3 +29,4 @@ FastAPI backend service built on top of the **Google Agent Development Kit (`goo
 * `agent/orchestrator.py`: ADK runner execution (`run_text_chat`, `run_visual_search`).
 * `agent/guardrail.py`: Pre-LLM jailbreak check & Post-RAG database drift filter (`GuardrailException`).
 * `agent/search.py`: SSE client connector for Catalog MCP service with thread-safe OIDC token cache (`OIDCTokenCache`).
+
