@@ -15,18 +15,6 @@
           <span class="brand-title">Store Assistant</span>
         </div>
         <div class="navbar-actions">
-          <div class="engine-toggle-group">
-            <button 
-              type="button"
-              :class="['engine-btn', selectedEngine === 'gemini' ? 'active' : '']" 
-              @click="selectedEngine = 'gemini'"
-            >✨ Gemini 3.7</button>
-            <button 
-              type="button"
-              :class="['engine-btn', selectedEngine === 'gemma' ? 'active' : '']" 
-              @click="selectedEngine = 'gemma'"
-            >⚡ Gemma 4</button>
-          </div>
           <button class="theme-toggle-btn" @click="toggleTheme" title="Alternar tema">
             <svg v-if="!isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-toggle-icon">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
@@ -34,6 +22,17 @@
             <svg v-if="isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-toggle-icon">
               <circle cx="12" cy="12" r="4"/>
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41-1.41"/>
+            </svg>
+          </button>
+          <button 
+            v-if="isAdmin" 
+            type="button" 
+            class="admin-menu-btn" 
+            @click="showSettingsModal = true" 
+            title="Mais opções"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
             </svg>
           </button>
         </div>
@@ -157,7 +156,7 @@
           <input 
             type="text" 
             v-model="inputText" 
-            placeholder="Escreva sua pergunta sobre a Google Store..."
+            :placeholder="dynamicPlaceholder"
             :disabled="isTyping"
             ref="messageInput"
           />
@@ -170,7 +169,7 @@
         </form>
 
         <p class="input-notice">
-          Demonstração de Inteligência Artificial integrada com Google Cloud Operations Suite & Firebase.
+          Google Store Assistant (Demo) • Telemetria & IA com Google Cloud
         </p>
       </div>
     </div>
@@ -200,11 +199,57 @@
         </div>
       </div>
     </transition>
+
+    <!-- Admin Settings Right Drawer -->
+    <transition name="sheet-slide">
+      <div class="sheet-overlay" v-if="showSettingsModal" @click.self="showSettingsModal = false">
+        <div class="sheet-content">
+          <div class="sheet-header">
+            <h3 class="sheet-title">Configurações da Demonstração</h3>
+            <button class="sheet-close-btn" @click="showSettingsModal = false" title="Fechar">✕</button>
+          </div>
+
+          <div class="sheet-body">
+            <div class="settings-group-label">MOTOR DE IA</div>
+            
+            <div class="settings-list">
+              <div 
+                class="settings-item" 
+                :class="{ active: selectedEngine === 'gemini' }"
+                @click="selectedEngine = 'gemini'"
+              >
+                <div class="settings-item-info">
+                  <div class="settings-item-title">Gemini 3.7 Flash</div>
+                  <div class="settings-item-subtitle">Vertex AI (Cloud Run)</div>
+                </div>
+                <div class="radio-indicator">
+                  <span class="radio-inner" v-if="selectedEngine === 'gemini'"></span>
+                </div>
+              </div>
+
+              <div 
+                class="settings-item" 
+                :class="{ active: selectedEngine === 'gemma' }"
+                @click="selectedEngine = 'gemma'"
+              >
+                <div class="settings-item-info">
+                  <div class="settings-item-title">Gemma 4 E2B</div>
+                  <div class="settings-item-subtitle">llama-server (Inference Sidecar)</div>
+                </div>
+                <div class="radio-indicator">
+                  <span class="radio-inner" v-if="selectedEngine === 'gemma'"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInAnonymously } from 'firebase/auth'
 
@@ -219,7 +264,23 @@ const toggleTheme = () => {
 }
 
 // State Variables
+const route = useRoute()
+const isMobile = ref(false)
+// Admin mode: true enables the demo settings button in the header
+const isAdmin = ref(true)
+const showSettingsModal = ref(false)
+
 const selectedEngine = ref('gemini') // 'gemini' | 'gemma'
+
+const toggleEngine = () => {
+  selectedEngine.value = selectedEngine.value === 'gemini' ? 'gemma' : 'gemini'
+}
+
+const dynamicPlaceholder = computed(() => {
+  return isMobile.value 
+    ? 'Faça sua pergunta...' 
+    : 'Escreva sua pergunta sobre a Google Store...'
+})
 const sessionId = ref('')
 const userUid = ref('')
 const authReady = ref(false)
@@ -262,6 +323,15 @@ const initAuth = async () => {
 
 // 3. Lifecycle Hooks
 onMounted(() => {
+  // Detect mobile viewport dynamically for responsive placeholder
+  if (typeof window !== 'undefined') {
+    const mq = window.matchMedia('(max-width: 640px)')
+    isMobile.value = mq.matches
+    mq.addEventListener('change', (e) => {
+      isMobile.value = e.matches
+    })
+  }
+
   // Generate a random session ID for this chat instance
   sessionId.value = 'session_' + Math.random().toString(36).substr(2, 9)
   initAuth()
@@ -490,7 +560,7 @@ const submitMessage = async () => {
   width: 100%;
   max-width: var(--max-content-width);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 12px 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -522,32 +592,155 @@ const submitMessage = async () => {
   gap: 16px;
 }
 
-.engine-toggle-group {
-  display: flex;
-  background-color: var(--bg-color-alt);
-  border: 1px solid var(--border-color-light);
-  border-radius: 20px;
-  padding: 2px;
-  gap: 2px;
-}
-
-.engine-btn {
+.admin-menu-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 6px 12px;
-  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-.engine-btn.active {
-  background-color: var(--panel-color);
+.admin-menu-btn:hover {
+  background-color: var(--border-color-light);
   color: var(--text-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Admin Settings Right Drawer */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1100;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.sheet-content {
+  width: 100%;
+  max-width: 360px;
+  height: 100%;
+  background-color: var(--panel-color);
+  border-left: 1px solid var(--border-color);
+  border-radius: 16px 0 0 16px;
+  padding: 20px 24px;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color-light);
+  margin-bottom: 16px;
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sheet-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.settings-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.settings-item:hover {
+  background-color: var(--bg-color-alt);
+}
+
+.settings-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settings-item-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.radio-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.settings-item.active .radio-indicator {
+  border-color: #3186FF;
+}
+
+.radio-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #3186FF;
+}
+
+/* Sheet Slide Transition */
+.sheet-slide-enter-active, .sheet-slide-leave-active {
+  transition: opacity 0.25s ease;
+}
+.sheet-slide-enter-active .sheet-content, .sheet-slide-leave-active .sheet-content {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet-slide-enter-from, .sheet-slide-leave-to {
+  opacity: 0;
+}
+.sheet-slide-enter-from .sheet-content, .sheet-slide-leave-to .sheet-content {
+  transform: translateX(100%);
 }
 
 .theme-toggle-btn {
@@ -1236,6 +1429,32 @@ const submitMessage = async () => {
 
 /* Responsive Overrides */
 @media (max-width: 640px) {
+  .navbar-container {
+    padding: 0 8px 0 16px;
+    gap: 8px;
+  }
+  
+  .brand-title {
+    font-size: 15px;
+    margin-left: 8px;
+    padding-left: 8px;
+  }
+  
+  .navbar-actions {
+    gap: 8px;
+  }
+  
+  .theme-toggle-btn,
+  .admin-menu-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .sheet-content {
+    max-width: 85vw;
+    border-radius: 12px 0 0 12px;
+  }
+
   .welcome-hero h2 {
     font-size: 26px;
   }
