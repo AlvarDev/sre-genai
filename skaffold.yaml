@@ -43,3 +43,29 @@ portForward:
     resourceName: backend-gemma-service
     port: 8080
     localPort: 8081
+profiles:
+  - name: backends-only
+    build:
+      artifacts:
+        - image: backend-service
+          context: backend
+          docker:
+            dockerfile: Dockerfile
+        - image: catalog-mcp-server
+          context: catalog-mcp
+          docker:
+            dockerfile: Dockerfile
+    manifests:
+      rawYaml:
+        - k8s/backend-gemini.yaml
+        - k8s/backend-gemma.yaml
+        - k8s/catalog-mcp.yaml
+    portForward:
+      - resourceType: Service
+        resourceName: backend-gemini-service
+        port: 8080
+        localPort: 8080
+      - resourceType: Service
+        resourceName: backend-gemma-service
+        port: 8080
+        localPort: 8081

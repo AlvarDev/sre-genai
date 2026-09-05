@@ -1,5 +1,17 @@
+# Dependencies and caches
 node_modules
 .nuxt
 .output
 dist
+
+# Environment and secrets
 .env
+.env.*
+*.local
+
+# Logs and Git
+.git
+.gitignore
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
