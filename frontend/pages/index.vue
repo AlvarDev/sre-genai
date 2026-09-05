@@ -13,6 +13,9 @@
             <path fill="#FC413D" d="M68.26 15.52c-1.3 0-2.22-.59-2.82-1.76l7.77-3.21-.26-.66c-.48-1.3-1.96-3.7-4.97-3.7-2.99 0-5.48 2.35-5.48 5.81 0 3.26 2.46 5.81 5.76 5.81 2.66 0 4.2-1.63 4.84-2.57l-1.98-1.32c-.66.96-1.56 1.6-2.86 1.6zm-.18-7.15c1.03 0 1.91.53 2.2 1.28l-5.25 2.17c0-2.44 1.73-3.45 3.05-3.45z" />
           </svg>
           <span class="brand-title">Store Assistant</span>
+          <transition name="fade">
+            <span v-if="selectedEngine !== 'gemini'" class="model-indicator">[Gemma 4]</span>
+          </transition>
         </div>
         <div class="navbar-actions">
           <button class="theme-toggle-btn" @click="toggleTheme" title="Alternar tema">
@@ -218,7 +221,7 @@
               <div 
                 class="settings-item" 
                 :class="{ active: selectedEngine === 'gemini' }"
-                @click="selectedEngine = 'gemini'"
+                @click="selectEngine('gemini')"
               >
                 <div class="settings-item-info">
                   <div class="settings-item-title">Gemini 3.7 Flash</div>
@@ -232,7 +235,7 @@
               <div 
                 class="settings-item" 
                 :class="{ active: selectedEngine === 'gemma' }"
-                @click="selectedEngine = 'gemma'"
+                @click="selectEngine('gemma')"
               >
                 <div class="settings-item-info">
                   <div class="settings-item-title">Gemma 4 E2B</div>
@@ -412,8 +415,11 @@ const logoutAdmin = async () => {
 
 const selectedEngine = ref('gemini') // 'gemini' | 'gemma'
 
-const toggleEngine = () => {
-  selectedEngine.value = selectedEngine.value === 'gemini' ? 'gemma' : 'gemini'
+const selectEngine = (engine) => {
+  selectedEngine.value = engine
+  setTimeout(() => {
+    showSettingsModal.value = false
+  }, 180)
 }
 
 const dynamicPlaceholder = computed(() => {
@@ -761,6 +767,16 @@ const submitMessage = async () => {
   line-height: 1.2;
 }
 
+.model-indicator {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 8px;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
 .navbar-actions {
   display: flex;
   align-items: center;
@@ -906,10 +922,10 @@ const submitMessage = async () => {
 
 /* Sheet Slide Transition */
 .sheet-slide-enter-active, .sheet-slide-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.35s ease;
 }
 .sheet-slide-enter-active .sheet-content, .sheet-slide-leave-active .sheet-content {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .sheet-slide-enter-from, .sheet-slide-leave-to {
   opacity: 0;
@@ -1846,6 +1862,11 @@ const submitMessage = async () => {
     font-size: 15px;
     margin-left: 8px;
     padding-left: 8px;
+  }
+
+  .model-indicator {
+    font-size: 12px;
+    margin-left: 6px;
   }
   
   .theme-toggle-btn,
