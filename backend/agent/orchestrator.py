@@ -25,7 +25,7 @@ with open(prompt_path, "r", encoding="utf-8") as f:
     system_instruction = f.read()
 
 # Setup the LLM model connection
-model_name = os.getenv("CORE_MODEL", "gemini-3.7-flash")
+model_name = os.getenv("CORE_MODEL", "gemini-3.8-flash")
 if "gemma" in model_name.lower():
     inference_endpoint = os.getenv("INFERENCE_ENDPOINT")
     if not inference_endpoint:

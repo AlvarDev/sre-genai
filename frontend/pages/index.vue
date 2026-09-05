@@ -224,7 +224,7 @@
                 @click="selectEngine('gemini')"
               >
                 <div class="settings-item-info">
-                  <div class="settings-item-title">Gemini 3.7 Flash</div>
+                  <div class="settings-item-title">Gemini 3.8 Flash</div>
                   <div class="settings-item-subtitle">Vertex AI (Cloud Run)</div>
                 </div>
                 <div class="radio-indicator">

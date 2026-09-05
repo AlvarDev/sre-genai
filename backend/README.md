@@ -9,7 +9,7 @@ FastAPI backend service built on top of the **Google Agent Development Kit (`goo
 * **Framework**: FastAPI (running on Uvicorn on port 8080)
 * **Agent Engine**: `google-adk` (`Agent`, `Runner`, `InMemorySessionService`)
 * **Package Manager**: `uv`
-* **Models**: `gemini-3.1-flash-lite` (Guardrail classifier) & `gemini-embedding-2` (768-dim embeddings)
+* **Models**: `gemini-3.8-flash` (Core agent orchestrator), `gemini-3.1-flash-lite` (Guardrail classifier) & `gemini-embedding-2` (768-dim embeddings)
 * **Authentication**: Firebase Admin SDK & GCP OIDC Token Cache for service-to-service IAM calls
 * **Telemetry**: OpenTelemetry SDK with `opentelemetry-exporter-gcp-monitoring`
 

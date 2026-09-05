@@ -64,7 +64,7 @@ Deployments are managed declaratively via Cloud Build triggers using [`backend/c
 gcloud run deploy backend-gemini \
   --image southamerica-east1-docker.pkg.dev/${PROJECT_ID}/sre-genai/backend-service:latest \
   --region southamerica-east1 \
-  --set-env-vars="PROJECT_ID=${PROJECT_ID},LOCATION=us,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.7-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,MCP_SERVER_URL=https://catalog-mcp-server-${PROJECT_NUMBER}.southamerica-east1.run.app/mcp/sse" \
+  --set-env-vars="PROJECT_ID=${PROJECT_ID},LOCATION=us,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.8-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,MCP_SERVER_URL=https://catalog-mcp-server-${PROJECT_NUMBER}.southamerica-east1.run.app/mcp/sse" \
   --service-account backend-sa@${PROJECT_ID}.iam.gserviceaccount.com \
   --no-cpu-throttling \
   --allow-unauthenticated

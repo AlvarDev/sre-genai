@@ -1,5 +1,5 @@
 # ⚡ `gbench` Evaluation Plan: Google Store Assistant
-### Comparing Gemini 3.7 Flash (Managed API) vs. Gemma 4 E2B (Cloud Run Multi-Container)
+### Comparing Gemini 3.8 Flash (Managed API) vs. Gemma 4 E2B (Cloud Run Multi-Container)
 
 ---
 
@@ -8,7 +8,7 @@
 This evaluation plan benchmarks the **Google Store Multimodal Virtual Assistant**—an enterprise demonstration platform combining Multimodal RAG (`gemini-embedding-2`), Model Context Protocol (`FastMCP` over SSE), dual-layer guardrails, and Site Reliability Engineering (SRE) observability on Google Cloud Run.
 
 The primary objective is to conduct a rigorous comparison between two architecture patterns:
-1. **Managed Cloud API**: `Gemini 3.7 Flash` via **Google Agent Platform / Vertex AI**.
+1. **Managed Cloud API**: `Gemini 3.8 Flash` via **Google Agent Platform / Vertex AI**.
 2. **Self-Hosted Compute**: `Gemma 4` (`unsloth/gemma-4-E2B-it-GGUF` Q4_K_M) deployed via a **Multi-Container Sidecar with GCS Volume Mount** on Cloud Run.
 
 ---
@@ -37,7 +37,7 @@ We deploy **2 Cloud Run backend services**:
 
 | Service ID | Host Architecture | `/v1` Path (Full Pipeline) | `/v1/core` Path (Direct Core Model) |
 | :--- | :--- | :--- | :--- |
-| **`backend-gemini`** | FastAPI + Gemini API (Google Agent Platform) | E2E System Latency (Gemini 3.7 Flash) | Pure TTFT/TPOT & Golden Capabilities (Gemini 3.7 Flash) |
+| **`backend-gemini`** | FastAPI + Gemini API (Google Agent Platform) | E2E System Latency (Gemini 3.8 Flash) | Pure TTFT/TPOT & Golden Capabilities (Gemini 3.8 Flash) |
 | **`backend-gemma`** | Multi-Container: FastAPI + `llama-server` Sidecar (`gemma-4-E2B-it-GGUF`) | E2E System Latency (Gemma 4 E2B) | Pure TTFT/TPOT & Golden Capabilities (Gemma 4 E2B) |
 
 ### ⚙️ Cloud Run Instance Right-Sizing
@@ -68,7 +68,7 @@ We run `gbench` against both backend services targeting their OpenAI-compatible 
 Focuses on end-to-end system user experience (E2EL) under realistic multi-turn guardrail and tool execution workloads.
 
 ```bash
-# Test 1: Full Pipeline (Gemini 3.7 Flash)
+# Test 1: Full Pipeline (Gemini 3.8 Flash)
 gbench --remote-endpoint https://backend-gemini-....southamerica-east1.run.app/v1 \
        --serving-only \
        --results-dir ./results/01-full-pipeline-gemini
@@ -85,7 +85,7 @@ gbench --remote-endpoint https://backend-gemma-....southamerica-east1.run.app/v1
 Focuses on pure model performance (unfiltered TTFT, TPOT, tokens/sec) and Golden Set capability invariant pass rates (`16/16 PASS`).
 
 ```bash
-# Test 3: Direct Core Model (Gemini 3.7 Flash)
+# Test 3: Direct Core Model (Gemini 3.8 Flash)
 gbench --remote-endpoint https://backend-gemini-....southamerica-east1.run.app/v1/core \
        --serving-only \
        --golden-only \
@@ -110,4 +110,4 @@ The generated `summary.json` result traces will be cross-analyzed across three t
 2. **Capability Invariant Pass Rate**:
    - Golden Set pass rates on tool calling, JSON schema generation, and reasoning invariants from Direct Core Model tests (Test 3 & Test 4 via `/v1/core`).
 3. **Total Cost of Ownership (TCO)**:
-   - Gemini 3.7 Flash pay-per-token API cost vs. Gemma 4 E2B Cloud Run compute cost.
+   - Gemini 3.8 Flash pay-per-token API cost vs. Gemma 4 E2B Cloud Run compute cost.
