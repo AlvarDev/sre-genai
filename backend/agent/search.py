@@ -1,8 +1,9 @@
 import os
 import asyncio
 import logging
-import time
-import threading
+from urllib.parse import urlparse
+import google.auth.transport.requests
+from google.oauth2 import id_token
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 
@@ -15,50 +16,11 @@ mcp_server_url = os.getenv("MCP_SERVER_URL")
 if not mcp_server_url:
     raise RuntimeError("MCP_SERVER_URL environment variable is required but not set.")
 
+# Cloud Run uses the target service hostname as audience
+parsed_url = urlparse(mcp_server_url)
+mcp_audience = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
-class OIDCTokenCache:
-    """
-    Thread-safe cache for Google OIDC Identity Tokens.
-    Avoids making blocking network calls to GCP's metadata server on every request.
-    """
-    def __init__(self, audience: str, cache_duration_seconds: int = 3000):
-        self.audience = audience
-        self.cache_duration = cache_duration_seconds
-        self._token = None
-        self._expiry = 0
-        self._lock = threading.Lock()
-
-    def get_token(self) -> str:
-        now = time.time()
-        
-        # 1. Check cache (thread-safe)
-        with self._lock:
-            if self._token and now < self._expiry:
-                return self._token
-        
-        # 2. Cache miss/expired: Fetch fresh token
-        import requests
-        metadata_url = (
-            "http://metadata.google.internal/computeMetadata/v1/instance/"
-            f"service-accounts/default/identity?audience={self.audience}"
-        )
-        try:
-            logger.info("OIDC token cache miss/expired. Fetching fresh token from GCP metadata server...")
-            response = requests.get(metadata_url, headers={"Metadata-Flavor": "Google"}, timeout=2)
-            token = response.text.strip()
-            
-            # 3. Save to cache (thread-safe)
-            with self._lock:
-                self._token = token
-                self._expiry = time.time() + self.cache_duration
-            return token
-        except Exception as e:
-            logger.error(f"Failed to fetch OIDC token from metadata server: {e}", exc_info=True)
-            raise e
-
-
-# Initialize the token cache globally for the target MCP server URL
-token_cache = OIDCTokenCache(audience=mcp_server_url)
+auth_request = google.auth.transport.requests.Request()
 
 
 def get_mcp_headers() -> dict:
@@ -71,11 +33,11 @@ def get_mcp_headers() -> dict:
     # Check if running in Google Cloud Run (sets K_SERVICE automatically)
     if os.getenv("K_SERVICE"):
         try:
-            token = token_cache.get_token()
+            token = id_token.fetch_id_token(auth_request, mcp_audience)
             headers["Authorization"] = f"Bearer {token}"
-        except Exception:
-            # Error has already been caught and logged inside the token cache
-            pass
+        except Exception as e:
+            logger.error(f"Failed to acquire OIDC token for MCP server: {e}", exc_info=True)
+            raise RuntimeError(f"Service authentication failed: unable to obtain OIDC token: {e}") from e
     else:
         # In local dev / local containers: set Host header to 'localhost' to pass
         # the MCP server's default DNS rebinding/host validation check.
