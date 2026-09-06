@@ -63,7 +63,7 @@ async def search_store_catalog(query_text: str) -> str:
     Always use this tool when a customer asks about product pricing, specs, or availability.
     """
     raw_results = await search_catalog_tool(query_text)
-    return filter_retrieved_products(raw_results)
+    return await filter_retrieved_products(raw_results)
 
 store_assistant_agent = Agent(
     name="store_assistant",
@@ -110,7 +110,7 @@ async def run_text_chat(user_query: str, chat_history: list, user_uid: str = "")
     Processes a text query using ADK LlmAgent. Validates input, updates history, and returns the response.
     """
     # 1. Pre-LLM Guardrail check
-    safe_query = validate_user_input(user_query)
+    safe_query = await validate_user_input(user_query)
 
     # 2. Setup in-memory session service and create session
     session_service = InMemorySessionService()
@@ -177,7 +177,7 @@ async def run_visual_search(image_bytes: bytes, user_query: str = "", user_uid: 
     
     # Measure and record embedding generation latency
     start_time = time.time()
-    result = us_client.models.embed_content(
+    result = await us_client.aio.models.embed_content(
         model="gemini-embedding-2",
         contents=[
             types.Part.from_bytes(
@@ -209,7 +209,7 @@ async def run_visual_search(image_bytes: bytes, user_query: str = "", user_uid: 
     raw_results = await search_catalog_by_image_tool(image_embedding)
     
     # 3. Post-RAG Guardrail filter (silently strips off-topic items)
-    clean_results = filter_retrieved_products(raw_results)
+    clean_results = await filter_retrieved_products(raw_results)
     
     # 4. Generate conversational response grounded in the clean products
     grounding_prompt = (

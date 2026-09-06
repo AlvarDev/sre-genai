@@ -45,7 +45,7 @@ def _record_violation(violation_type: str, attributes: dict | None = None):
     except Exception as err:
         print(f"Failed to record guardrail metric '{violation_type}': {err}")
 
-def validate_user_input(user_query: str) -> str:
+async def validate_user_input(user_query: str) -> str:
     """
     Pre-LLM Guardrail. Evaluates the user prompt for jailbreaks or prompt injections.
     Returns the query if safe, or raises GuardrailException if unsafe.
@@ -75,7 +75,7 @@ def validate_user_input(user_query: str) -> str:
     )
 
     try:
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model=model_name,
             contents=content,
             config=config
@@ -95,7 +95,7 @@ def validate_user_input(user_query: str) -> str:
 
     return user_query
 
-def filter_retrieved_products(raw_search_results: str) -> str:
+async def filter_retrieved_products(raw_search_results: str) -> str:
     """
     Post-RAG Guardrail. Filters out off-topic products (e.g. food/groceries) from the database results.
     Increments OpenTelemetry violations and returns a clean, filtered product catalog string.
@@ -112,30 +112,57 @@ def filter_retrieved_products(raw_search_results: str) -> str:
     try:
         # Parse products separated by '---'
         products = raw_search_results.split("\n---\n")
-        filtered_products = []
 
+        # Single-call batch auditor prompt
+        batch_instruction = (
+            "You are an e-commerce inventory auditor for the Google Store.\n"
+            "Audit the retrieved product items inside <catalog_items>.\n"
+            "Verify if each product belongs to Google Store merchandise, office stationery, bags, accessories, toys, or branded apparel.\n"
+            "If it is a food item, grocery, fresh produce (e.g., potatoes, bananas), or unrelated retail item, mark its verdict as 'OFF-TOPIC'.\n"
+            "Otherwise, mark its verdict as 'VALID'.\n"
+            "Return a JSON object with a list of evaluations matching each product's SKU."
+        )
+
+        batch_config = types.GenerateContentConfig(
+            system_instruction=batch_instruction,
+            response_mime_type="application/json",
+            response_schema={
+                "type": "OBJECT",
+                "properties": {
+                    "evaluations": {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "sku": {"type": "STRING"},
+                                "verdict": {"type": "STRING", "enum": ["VALID", "OFF-TOPIC"]},
+                                "reason": {"type": "STRING"}
+                            },
+                            "required": ["sku", "verdict"]
+                        }
+                    }
+                },
+                "required": ["evaluations"]
+            },
+            temperature=0.0
+        )
+
+        response = await client.aio.models.generate_content(
+            model=model_name,
+            contents=f"<catalog_items>\n{raw_search_results}\n</catalog_items>",
+            config=batch_config
+        )
+
+        audit_data = json.loads(response.text.strip())
+        verdicts = {item["sku"]: item["verdict"] for item in audit_data.get("evaluations", [])}
+
+        filtered_products = []
         for product in products:
             if not product.strip():
                 continue
-                
-            # Classify product category using Gemini 3.1 Flash-Lite
-            classification_prompt = (
-                "You are an e-commerce inventory auditor.\n"
-                "Verify if the following product belongs to Google Store merchandise, office stationery (stickers, pens, notebooks), bags, accessories, toys, or branded apparel.\n"
-                "If it is a food item, grocery, fresh produce (e.g., potatoes, bananas), or unrelated retail item, respond with 'OFF-TOPIC'.\n"
-                "Otherwise, respond with 'VALID'.\n\n"
-                f"Product details:\n{product}\n\n"
-                "Verdict:"
-            )
-            response = client.models.generate_content(
-                model=model_name,
-                contents=classification_prompt
-            )
-            verdict = response.text.strip().upper()
-
-            if "OFF-TOPIC" in verdict:
-                sku_match = re.search(r"SKU:\s*(\S+)", product)
-                sku = sku_match.group(1) if sku_match else "unknown"
+            sku_match = re.search(r"SKU:\s*(\S+)", product)
+            sku = sku_match.group(1) if sku_match else "unknown"
+            if verdicts.get(sku) == "OFF-TOPIC":
                 _record_violation("database_drift", {"product.sku": sku})
                 print(f"[GUARDRAIL WARNING] Silently filtered out database drift product SKU: {sku}")
             else:
