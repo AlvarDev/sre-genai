@@ -12,7 +12,7 @@ def register_chat_routes(app: FastAPI):
         session_id = request.session_id or str(uuid.uuid4())
         user_query = request.message
 
-        history = get_session_history(session_id)
+        history = get_session_history(session_id, user_uid)
 
         try:
             agent_res = await run_text_chat(user_query, history, user_uid=user_uid)
@@ -48,7 +48,7 @@ def register_chat_routes(app: FastAPI):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Visual search failed: {str(e)}")
 
-        history = get_session_history(active_session_id)
+        history = get_session_history(active_session_id, user_uid)
         history.append({"role": "user", "content": f"[Buscou por Imagem] {message}".strip()})
         history.append({"role": "model", "content": search_result["text"]})
         save_session_history(active_session_id, history, user_uid)

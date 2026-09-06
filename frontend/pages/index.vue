@@ -504,8 +504,8 @@ onMounted(() => {
     })
   }
 
-  // Generate a random session ID for this chat instance
-  sessionId.value = 'session_' + Math.random().toString(36).substr(2, 9)
+  // Generate a cryptographically secure UUID for this chat instance
+  sessionId.value = crypto.randomUUID()
   initAuth()
 })
 
