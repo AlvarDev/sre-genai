@@ -47,6 +47,12 @@ spec:
               value: "gemini-3.5-flash-lite"
             - name: INFERENCE_ENDPOINT
               value: "http://localhost:11434/v1"
+            - name: OTEL_SEMCONV_STABILITY_OPT_IN
+              value: "gen_ai_latest_experimental"
+            - name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+              value: "EVENT_ONLY"
+            - name: ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS
+              value: "false"
         # Sidecar Container: Gemma 4 E2B Inference Engine
         - name: inference-sidecar
           image: southamerica-east1-docker.pkg.dev/PROJECT_ID_PLACEHOLDER/sre-genai/llama-server:latest

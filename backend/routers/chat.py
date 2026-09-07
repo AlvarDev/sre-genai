@@ -1,5 +1,6 @@
 import uuid
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
+from opentelemetry import trace
 from auth import get_current_user_uid
 from models import ChatRequest, ChatResponse
 from database import get_session_history, save_session_history
@@ -11,6 +12,12 @@ def register_chat_routes(app: FastAPI):
     async def chat(request: ChatRequest, user_uid: str = Depends(get_current_user_uid)):
         session_id = request.session_id or str(uuid.uuid4())
         user_query = request.message
+
+        span = trace.get_current_span()
+        if span and span.is_recording():
+            span.set_attribute("gen_ai.conversation.id", session_id)
+            span.set_attribute("session_id", session_id)
+            span.set_attribute("enduser.id", user_uid)
 
         history = get_session_history(session_id, user_uid)
 
@@ -37,6 +44,13 @@ def register_chat_routes(app: FastAPI):
         user_uid: str = Depends(get_current_user_uid)
     ):
         active_session_id = session_id or str(uuid.uuid4())
+
+        span = trace.get_current_span()
+        if span and span.is_recording():
+            span.set_attribute("gen_ai.conversation.id", active_session_id)
+            span.set_attribute("session_id", active_session_id)
+            span.set_attribute("enduser.id", user_uid)
+
         history = get_session_history(active_session_id, user_uid)
         
         try:

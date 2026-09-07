@@ -1,24 +1,18 @@
 import base64
-import json
 import os
 import uvicorn
 import logging
-from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from google.cloud import firestore
-from google.cloud.firestore_v1.vector import Vector
-from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
 from google import genai
 from google.genai import types
-
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+from telemetry import setup_logging, setup_telemetry, flush_telemetry
+from repository import ProductCatalogRepository
 
 # 1. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
@@ -32,94 +26,9 @@ if not location:
 if not database_id:
     raise RuntimeError("FIRESTORE_DATABASE environment variable is required but not set.")
 
-
-class CloudLoggingFormatter(logging.Formatter):
-    """
-    Formats log records as JSON conforming to Google Cloud Logging specification.
-    Injects logging.googleapis.com/trace and logging.googleapis.com/spanId from
-    the active OpenTelemetry span context for automatic log correlation.
-    """
-    def __init__(self, gcp_project_id: str | None = None):
-        super().__init__()
-        self.project_id = gcp_project_id or ""
-
-    def format(self, record: logging.LogRecord) -> str:
-        log_entry = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
-            "severity": record.levelname,
-            "message": record.getMessage(),
-            "logger": record.name,
-        }
-        current_span = trace.get_current_span()
-        if current_span and current_span.is_recording():
-            ctx = current_span.get_span_context()
-            trace_id_hex = format(ctx.trace_id, "032x")
-            span_id_hex = format(ctx.span_id, "016x")
-            if self.project_id:
-                log_entry["logging.googleapis.com/trace"] = f"projects/{self.project_id}/traces/{trace_id_hex}"
-            else:
-                log_entry["logging.googleapis.com/trace"] = trace_id_hex
-            log_entry["logging.googleapis.com/spanId"] = span_id_hex
-            log_entry["logging.googleapis.com/trace_sampled"] = ctx.trace_flags.sampled
-
-        if record.exc_info:
-            log_entry["exception"] = self.formatException(record.exc_info)
-
-        return json.dumps(log_entry)
-
-
-log_handler = logging.StreamHandler()
-log_handler.setFormatter(CloudLoggingFormatter(gcp_project_id=project_id))
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers.clear()
-root_logger.addHandler(log_handler)
-
+# Configure structured logging
+setup_logging(project_id=project_id)
 logger = logging.getLogger("catalog-mcp-server")
-
-
-
-class ProductCatalogRepository:
-    """
-    Handles data access to the Firestore products catalog.
-    Encapsulates vector search queries and string formatting for LLM consumption.
-    """
-    def __init__(self, firestore_db):
-        self.db = firestore_db
-        self.collection = firestore_db.collection("products")
-
-    def find_similar_products(self, vector: list[float], limit: int = 3) -> list[dict]:
-        """
-        Executes a nearest-neighbor vector search in Firestore and returns raw dicts.
-        """
-        vector_query = self.collection.find_nearest(
-            vector_field="image_embeddings",
-            query_vector=Vector(vector),
-            distance_measure=DistanceMeasure.COSINE,
-            limit=limit
-        )
-        return [doc.to_dict() for doc in vector_query.stream()]
-
-    @staticmethod
-    def format_products_to_string(products: list[dict]) -> str:
-        """
-        Formats a list of product records into a clean string representation for the LLM.
-        """
-        if not products:
-            return "No matching products found in the catalog."
-            
-        formatted = []
-        for data in products:
-            product_info = (
-                f"Title: {data.get('title')}\n"
-                f"SKU: {data.get('parent_sku')}\n"
-                f"Price: R$ {data.get('retail_price')}\n"
-                f"Description: {data.get('shortdesc')}\n"
-                f"Image URL: {data.get('img_url')}\n"
-            )
-            formatted.append(product_info)
-        return "\n---\n".join(formatted)
-
 
 # 2. Initialize Clients and Repositories Globally
 db = firestore.Client(database=database_id)
@@ -127,26 +36,14 @@ catalog_repo = ProductCatalogRepository(db)
 genai_client = genai.Client(vertexai=True, project=project_id, location=location)
 logger.info(f"Initialized Firestore and GenAI clients. Project: {project_id}")
 
-# 3. Initialize OpenTelemetry Tracer
-tracer_provider = None
-try:
-    resource = Resource.create({
-        "service.name": os.getenv("SERVICE_NAME", os.getenv("K_SERVICE", "catalog-mcp")),
-        "service.instance.id": os.getenv("HOSTNAME", "default-instance"),
-    })
-    trace_exporter = CloudTraceSpanExporter(project_id=project_id)
-    tracer_provider = TracerProvider(resource=resource)
-    tracer_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
-    trace.set_tracer_provider(tracer_provider)
-    logger.info("OpenTelemetry Google Cloud Trace Exporter initialized in catalog-mcp.")
-except Exception as e:
-    logger.warning(f"Failed to initialize CloudTraceSpanExporter in catalog-mcp: {e}")
+service_name = os.getenv("K_SERVICE") or os.getenv("SERVICE_NAME")
+if not service_name:
+    raise RuntimeError("Missing required service name: set K_SERVICE or SERVICE_NAME.")
 
-tracer = trace.get_tracer("catalog-mcp")
+# 3. Initialize OpenTelemetry Tracer
+tracer_provider, tracer = setup_telemetry(service_name=service_name, project_id=project_id)
 
 # 4. Initialize the FastMCP Server
-from mcp.server.transport_security import TransportSecuritySettings
-
 # Check if running in a containerized prod environment (Cloud Run sets K_SERVICE, Kubernetes sets KUBERNETES_SERVICE_HOST)
 is_prod = (os.getenv("K_SERVICE") is not None) or (os.getenv("KUBERNETES_SERVICE_HOST") is not None)
 
@@ -233,13 +130,7 @@ def search_catalog_by_image(image_base64: str, mime_type: str = "image/jpeg") ->
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    if tracer_provider is not None:
-        try:
-            tracer_provider.force_flush()
-            tracer_provider.shutdown()
-            logger.info("Flushed OpenTelemetry traces on catalog-mcp shutdown.")
-        except Exception as e:
-            logger.error(f"Error flushing traces on catalog-mcp shutdown: {e}")
+    flush_telemetry(tracer_provider)
 
 app = FastAPI(title="Catalog MCP Server API", lifespan=lifespan)
 

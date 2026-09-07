@@ -23,6 +23,8 @@ spec:
           env:
             - name: PORT
               value: "8001"
+            - name: SERVICE_NAME
+              value: "catalog-mcp"
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
