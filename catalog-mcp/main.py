@@ -1,6 +1,10 @@
+import base64
+import json
 import os
 import uvicorn
 import logging
+from datetime import datetime, timezone
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from mcp.server.fastmcp import FastMCP
 from google.cloud import firestore
@@ -9,9 +13,12 @@ from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
 from google import genai
 from google.genai import types
 
-# Configure structured logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("catalog-mcp-server")
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 # 1. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
@@ -24,6 +31,51 @@ if not location:
     raise RuntimeError("LOCATION environment variable is required but not set.")
 if not database_id:
     raise RuntimeError("FIRESTORE_DATABASE environment variable is required but not set.")
+
+
+class CloudLoggingFormatter(logging.Formatter):
+    """
+    Formats log records as JSON conforming to Google Cloud Logging specification.
+    Injects logging.googleapis.com/trace and logging.googleapis.com/spanId from
+    the active OpenTelemetry span context for automatic log correlation.
+    """
+    def __init__(self, gcp_project_id: str | None = None):
+        super().__init__()
+        self.project_id = gcp_project_id or ""
+
+    def format(self, record: logging.LogRecord) -> str:
+        log_entry = {
+            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "severity": record.levelname,
+            "message": record.getMessage(),
+            "logger": record.name,
+        }
+        current_span = trace.get_current_span()
+        if current_span and current_span.is_recording():
+            ctx = current_span.get_span_context()
+            trace_id_hex = format(ctx.trace_id, "032x")
+            span_id_hex = format(ctx.span_id, "016x")
+            if self.project_id:
+                log_entry["logging.googleapis.com/trace"] = f"projects/{self.project_id}/traces/{trace_id_hex}"
+            else:
+                log_entry["logging.googleapis.com/trace"] = trace_id_hex
+            log_entry["logging.googleapis.com/spanId"] = span_id_hex
+            log_entry["logging.googleapis.com/trace_sampled"] = ctx.trace_flags.sampled
+
+        if record.exc_info:
+            log_entry["exception"] = self.formatException(record.exc_info)
+
+        return json.dumps(log_entry)
+
+
+log_handler = logging.StreamHandler()
+log_handler.setFormatter(CloudLoggingFormatter(gcp_project_id=project_id))
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.handlers.clear()
+root_logger.addHandler(log_handler)
+
+logger = logging.getLogger("catalog-mcp-server")
 
 
 
@@ -75,7 +127,24 @@ catalog_repo = ProductCatalogRepository(db)
 genai_client = genai.Client(vertexai=True, project=project_id, location=location)
 logger.info(f"Initialized Firestore and GenAI clients. Project: {project_id}")
 
-# 3. Initialize the FastMCP Server
+# 3. Initialize OpenTelemetry Tracer
+tracer_provider = None
+try:
+    resource = Resource.create({
+        "service.name": os.getenv("SERVICE_NAME", os.getenv("K_SERVICE", "catalog-mcp")),
+        "service.instance.id": os.getenv("HOSTNAME", "default-instance"),
+    })
+    trace_exporter = CloudTraceSpanExporter(project_id=project_id)
+    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
+    trace.set_tracer_provider(tracer_provider)
+    logger.info("OpenTelemetry Google Cloud Trace Exporter initialized in catalog-mcp.")
+except Exception as e:
+    logger.warning(f"Failed to initialize CloudTraceSpanExporter in catalog-mcp: {e}")
+
+tracer = trace.get_tracer("catalog-mcp")
+
+# 4. Initialize the FastMCP Server
 from mcp.server.transport_security import TransportSecuritySettings
 
 # Check if running in a containerized prod environment (Cloud Run sets K_SERVICE, Kubernetes sets KUBERNETES_SERVICE_HOST)
@@ -89,64 +158,97 @@ mcp = FastMCP(
 )
 logger.info(f"Initialized FastMCP server. DNS Rebinding protection: {not is_prod}")
 
-# 4. Tool 1: Text-based catalog search
+# 5. Tool 1: Text-based catalog search
 @mcp.tool()
 def search_catalog(query_text: str) -> str:
     """
     Search the Google Store tech and apparel catalog using a natural language text query.
     Performs a nearest-neighbor vector search on the image_embeddings field in Firestore.
     """
-    try:
-        logger.info(f"Executing catalog text search for query: '{query_text}'")
-        
-        # Generate embedding for the query text using the Multimodal Embedding model (768 dimensions)
-        result = genai_client.models.embed_content(
-            model="gemini-embedding-2",
-            contents=query_text,
-            config=types.EmbedContentConfig(output_dimensionality=768)
-        )
-        query_vector = result.embeddings[0].values
+    with tracer.start_as_current_span("mcp.tool.search_catalog") as span:
+        span.set_attribute("catalog.query_text", query_text)
+        try:
+            logger.info(f"Executing catalog text search for query: '{query_text}'")
+            
+            # Generate embedding for the query text using the Multimodal Embedding model (768 dimensions)
+            result = genai_client.models.embed_content(
+                model="gemini-embedding-2",
+                contents=query_text,
+                config=types.EmbedContentConfig(output_dimensionality=768)
+            )
+            query_vector = result.embeddings[0].values
 
-        # Perform search and format using Repository pattern
-        products = catalog_repo.find_similar_products(query_vector)
-        formatted_result = catalog_repo.format_products_to_string(products)
-        
-        logger.info(f"Text search complete. Found {len(products)} products.")
-        return formatted_result
+            # Perform search and format using Repository pattern
+            products = catalog_repo.find_similar_products(query_vector)
+            span.set_attribute("catalog.results_count", len(products))
+            formatted_result = catalog_repo.format_products_to_string(products)
+            
+            logger.info(f"Text search complete. Found {len(products)} products.")
+            return formatted_result
 
-    except Exception as e:
-        logger.error(f"Error executing catalog search: {str(e)}", exc_info=True)
-        return f"Error executing catalog search: {str(e)}"
+        except Exception as e:
+            logger.error(f"Error executing catalog search: {str(e)}", exc_info=True)
+            return f"Error executing catalog search: {str(e)}"
 
-# 5. Tool 2: Image-based catalog search (Visual Search)
+# 6. Tool 2: Image-based catalog search (Visual Search)
 @mcp.tool()
-def search_catalog_by_image(image_vector: list[float]) -> str:
+def search_catalog_by_image(image_base64: str, mime_type: str = "image/jpeg") -> str:
     """
-    Search the Google Store catalog using a multimodal image embedding vector.
-    Performs nearest-neighbor vector search on the image_embeddings field in Firestore.
+    Search the Google Store catalog using an uploaded image.
+    Generates a multimodal embedding vector using gemini-embedding-2 and performs
+    nearest-neighbor vector search on the image_embeddings field in Firestore.
     """
-    try:
-        logger.info(f"Executing visual catalog search with vector dimension: {len(image_vector)}")
-        
-        # Perform search and format using Repository pattern
-        products = catalog_repo.find_similar_products(image_vector)
-        formatted_result = catalog_repo.format_products_to_string(products)
-        
-        logger.info(f"Visual search complete. Found {len(products)} products.")
-        return formatted_result
+    with tracer.start_as_current_span("mcp.tool.search_catalog_by_image") as span:
+        span.set_attribute("catalog.mime_type", mime_type)
+        try:
+            logger.info("Executing visual catalog search with base64 image payload.")
+            image_bytes = base64.b64decode(image_base64)
 
-    except Exception as e:
-        logger.error(f"Error executing visual search: {str(e)}", exc_info=True)
-        return f"Error executing visual search: {str(e)}"
+            # Generate embedding for the image using the Multimodal Embedding model (768 dimensions)
+            result = genai_client.models.embed_content(
+                model="gemini-embedding-2",
+                contents=[
+                    types.Part.from_bytes(
+                        data=image_bytes,
+                        mime_type=mime_type
+                    )
+                ],
+                config=types.EmbedContentConfig(output_dimensionality=768)
+            )
+            image_vector = result.embeddings[0].values
+            
+            # Perform search and format using Repository pattern
+            products = catalog_repo.find_similar_products(image_vector)
+            span.set_attribute("catalog.results_count", len(products))
+            formatted_result = catalog_repo.format_products_to_string(products)
+            
+            logger.info(f"Visual search complete. Found {len(products)} products.")
+            return formatted_result
 
-# 6. Mount the MCP SSE application onto FastAPI
-app = FastAPI(title="Catalog MCP Server API")
+        except Exception as e:
+            logger.error(f"Error executing visual search: {str(e)}", exc_info=True)
+            return f"Error executing visual search: {str(e)}"
+
+# 7. Lifespan and Mount the MCP SSE application onto FastAPI
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    if tracer_provider is not None:
+        try:
+            tracer_provider.force_flush()
+            tracer_provider.shutdown()
+            logger.info("Flushed OpenTelemetry traces on catalog-mcp shutdown.")
+        except Exception as e:
+            logger.error(f"Error flushing traces on catalog-mcp shutdown: {e}")
+
+app = FastAPI(title="Catalog MCP Server API", lifespan=lifespan)
 
 @app.get("/health")
 def health():
     return {"status": "healthy", "service": "catalog-mcp"}
 
 app.mount("/mcp", mcp.sse_app())
+FastAPIInstrumentor.instrument_app(app)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)

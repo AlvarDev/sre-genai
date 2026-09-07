@@ -1,3 +1,5 @@
+import base64
+import contextvars
 import os
 import uuid
 from google.adk.agents import Agent
@@ -6,10 +8,9 @@ from google.adk.sessions import InMemorySessionService
 from google.adk import Event
 from google.adk.models.google_llm import Gemini
 from google.adk.models.lite_llm import LiteLlm
-from google.genai import Client, types
-from opentelemetry import metrics
+from google.genai import types
 
-from agent.search import search_catalog_tool, search_catalog_by_image_tool
+from agent.search import call_catalog_text_search, call_catalog_image_search
 from agent.guardrail import validate_user_input, filter_retrieved_products
 
 # 1. Initialize Google Cloud project details
@@ -45,44 +46,49 @@ else:
         }
     )
 
-# Shared GenAI Client for raw operations (e.g. embeddings)
-us_client = Client(vertexai=True, project=project_id, location="us")
-
-# Initialize OpenTelemetry meters and module-level instruments
-meter = metrics.get_meter("gcp.vertex.agent")
-embedding_duration_histogram = meter.create_histogram(
-    name="gen_ai.client.operation.duration",
-    description="Duration of client operations",
-    unit="s"
-)
+# Async-safe ContextVars for passing active image bytes and mime-type to the visual tool
+current_image_bytes: contextvars.ContextVar[bytes | None] = contextvars.ContextVar("current_image_bytes", default=None)
+current_image_mime: contextvars.ContextVar[str] = contextvars.ContextVar("current_image_mime", default="image/jpeg")
 
 # Static ADK Tools and Agents initialized at module startup
-async def search_store_catalog(query_text: str) -> str:
+async def search_catalog_by_text(query_text: str) -> str:
     """
-    Search the Google Store product catalog for tech devices and apparel matching the query.
-    Always use this tool when a customer asks about product pricing, specs, or availability.
+    Search the Google Store product catalog using a natural language text query.
+    Always use this tool when a customer asks about product pricing, specs, or availability by text,
+    or when they request attribute modifications/filters on an image (e.g. asking for another color or category).
     """
-    raw_results = await search_catalog_tool(query_text)
+    raw_results = await call_catalog_text_search(query_text)
+    return await filter_retrieved_products(raw_results)
+
+async def search_catalog_by_image() -> str:
+    """
+    Search the Google Store product catalog using visual similarity with the customer's uploaded image.
+    Use this tool when the customer provides an image and asks if the store carries that item or similar items
+    without requesting attribute modifications (e.g. 'Do you have this?', 'Anything similar?', or when no text is provided).
+    CRITICAL: Do NOT use this tool if the user requests attribute modifications in text (e.g. asking for a different color, size, or category). In that case, call search_catalog_by_text instead.
+    """
+    img_bytes = current_image_bytes.get()
+    if not img_bytes:
+        return "No image was provided in this request."
+
+    image_b64 = base64.b64encode(img_bytes).decode("utf-8")
+    raw_results = await call_catalog_image_search(image_b64, mime_type=current_image_mime.get())
     return await filter_retrieved_products(raw_results)
 
 store_assistant_agent = Agent(
     name="store_assistant",
     model=core_model,
     instruction=system_instruction,
-    tools=[search_store_catalog]
-)
-
-grounding_agent = Agent(
-    name="grounding_agent",
-    model=core_model,
-    instruction=system_instruction
+    tools=[search_catalog_by_text, search_catalog_by_image]
 )
 
 def parse_structured_products(clean_results: str) -> list[dict]:
     """
     Helper to parse raw catalog tool output text into structured dictionaries for the UI.
+    Deduplicates products by parent_sku across multiple tool invocations.
     """
     structured_products = []
+    seen_skus = set()
     if clean_results and "No matching products" not in clean_results and "No visually matching" not in clean_results:
         parts = clean_results.split("\n---\n")
         for part in parts:
@@ -102,12 +108,17 @@ def parse_structured_products(clean_results: str) -> list[dict]:
                 elif line.startswith("Image URL:"):
                     p_dict["img_url"] = line.replace("Image URL:", "").strip()
             if p_dict:
+                sku = p_dict.get("parent_sku")
+                if sku and sku in seen_skus:
+                    continue
+                if sku:
+                    seen_skus.add(sku)
                 structured_products.append(p_dict)
     return structured_products
 
-async def run_text_chat(user_query: str, chat_history: list, user_uid: str = "") -> dict:
+async def execute_text_chat(user_query: str, chat_history: list, user_uid: str = "") -> dict:
     """
-    Processes a text query using ADK LlmAgent. Validates input, updates history, and returns the response.
+    Processes a conversational text query using the ADK Agent. Validates input, updates history, and returns the response.
     """
     # 1. Pre-LLM Guardrail check
     safe_query = await validate_user_input(user_query)
@@ -168,81 +179,86 @@ async def run_text_chat(user_query: str, chat_history: list, user_uid: str = "")
         "products": structured_products
     }
 
-async def run_visual_search(image_bytes: bytes, user_query: str = "", user_uid: str = "") -> dict:
+async def execute_visual_chat(
+    image_bytes: bytes,
+    user_query: str = "",
+    chat_history: list = None,
+    user_uid: str = "",
+    mime_type: str = "image/jpeg"
+) -> dict:
     """
-    Executes the visual search flow using ADK Agent.
+    Executes multimodal conversational chat using the ADK Agent. Validates text guardrail,
+    passes image + text parts to the agent, and lets the LLM autonomously choose the search tool.
     """
-    # 1. Generate Image Embedding Vector
-    import time
-    
-    # Measure and record embedding generation latency
-    start_time = time.time()
-    result = await us_client.aio.models.embed_content(
-        model="gemini-embedding-2",
-        contents=[
-            types.Part.from_bytes(
-                data=image_bytes,
-                mime_type="image/jpeg"
-            )
-        ],
-        config=types.EmbedContentConfig(output_dimensionality=768)
-    )
-    duration = time.time() - start_time
-    
-    # Record embedding latency metric using module-level instrument
-    try:
-        embedding_duration_histogram.record(
-            duration,
-            {
-                "gen_ai.request.model": "gemini-embedding-2",
-                "gen_ai.agent.name": "visual_search",
-                "gen_ai.operation.name": "embeddings",
-                "gen_ai.provider.name": "google"
-            }
-        )
-    except Exception as e:
-        print(f"Failed to export embedding latency metrics: {e}")
-    
-    image_embedding = result.embeddings[0].values
+    # 1. Pre-LLM Guardrail check on optional user query
+    safe_query = await validate_user_input(user_query) if user_query and user_query.strip() else ""
 
-    # 2. Search catalog by image vector
-    raw_results = await search_catalog_by_image_tool(image_embedding)
-    
-    # 3. Post-RAG Guardrail filter (silently strips off-topic items)
-    clean_results = await filter_retrieved_products(raw_results)
-    
-    # 4. Generate conversational response grounded in the clean products
-    grounding_prompt = (
-        f"{system_instruction}\n\n"
-        "Você recebeu uma busca por imagem.\n"
-        f"Resultados da busca no banco de dados (PRODUTOS): \n{clean_results}\n\n"
-        f"Comentário opcional do usuário: {user_query or 'Nenhum'}\n\n"
-        "Com base nos PRODUTOS fornecidos acima, responda ao usuário em português brasileiro sobre o que você encontrou."
-    )
-    
+    # 2. Set context variables for tool access
+    token = current_image_bytes.set(image_bytes)
+    mime_token = current_image_mime.set(mime_type)
+
     session_service = InMemorySessionService()
     active_uid = user_uid or "authenticated_user"
     session_id = "visual_" + str(uuid.uuid4())[:8]
 
-    runner = Runner(
-        app_name="visual_search",
-        agent=grounding_agent,
-        session_service=session_service,
-        auto_create_session=True
-    )
+    try:
+        session = await session_service.create_session(
+            app_name="store_assistant",
+            user_id=active_uid,
+            session_id=session_id
+        )
 
-    new_msg = types.Content(role="user", parts=[types.Part.from_text(text=grounding_prompt)])
-    response_text = ""
-    async for event in runner.run_async(user_id=active_uid, session_id=session_id, new_message=new_msg):
-        if event.content and event.content.parts:
-            for part in event.content.parts:
-                if part.text:
-                    response_text += part.text
+        # Populate previous conversation history if available
+        if chat_history:
+            for msg in chat_history:
+                role = "user" if msg["role"] == "user" else "model"
+                content = types.Content(
+                    role=role,
+                    parts=[types.Part.from_text(text=msg["content"])]
+                )
+                event = Event(
+                    author="user" if role == "user" else "store_assistant",
+                    content=content,
+                    turn_complete=True
+                )
+                await session_service.append_event(session, event)
 
-    # 5. Extract individual products for structured UI rendering
-    structured_products = parse_structured_products(clean_results)
-                
-    return {
-        "text": response_text,
-        "products": structured_products
-    }
+        runner = Runner(
+            app_name="store_assistant",
+            agent=store_assistant_agent,
+            session_service=session_service,
+            auto_create_session=True
+        )
+
+        # Multimodal payload: image bytes + safe user query
+        parts = [types.Part.from_bytes(data=image_bytes, mime_type=mime_type)]
+        if safe_query:
+            parts.append(types.Part.from_text(text=safe_query))
+        else:
+            parts.append(types.Part.from_text(text="O usuário enviou esta imagem buscando produtos no catálogo da Google Store."))
+
+        new_msg = types.Content(role="user", parts=parts)
+        response_text = ""
+        retrieved_catalog_text = ""
+
+        async for event in runner.run_async(user_id=active_uid, session_id=session_id, new_message=new_msg):
+            if event.content and event.content.parts:
+                for part in event.content.parts:
+                    if part.text:
+                        response_text += part.text
+                    if hasattr(part, "function_response") and part.function_response:
+                        resp = part.function_response.response
+                        if isinstance(resp, dict):
+                            retrieved_catalog_text += "\n".join(str(val) for val in resp.values())
+                        elif isinstance(resp, str):
+                            retrieved_catalog_text += resp
+
+        structured_products = parse_structured_products(retrieved_catalog_text)
+
+        return {
+            "text": response_text,
+            "products": structured_products
+        }
+    finally:
+        current_image_bytes.reset(token)
+        current_image_mime.reset(mime_token)

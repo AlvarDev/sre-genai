@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from auth import get_current_user_uid
 from models import ChatRequest, ChatResponse
 from database import get_session_history, save_session_history
-from agent.orchestrator import run_text_chat, run_visual_search
+from agent.orchestrator import execute_text_chat, execute_visual_chat
 from agent.guardrail import GuardrailException
 
 def register_chat_routes(app: FastAPI):
@@ -15,7 +15,7 @@ def register_chat_routes(app: FastAPI):
         history = get_session_history(session_id, user_uid)
 
         try:
-            agent_res = await run_text_chat(user_query, history, user_uid=user_uid)
+            agent_res = await execute_text_chat(user_query, history, user_uid=user_uid)
             agent_reply = agent_res["text"]
             products = agent_res["products"]
         except GuardrailException as ge:
@@ -37,6 +37,7 @@ def register_chat_routes(app: FastAPI):
         user_uid: str = Depends(get_current_user_uid)
     ):
         active_session_id = session_id or str(uuid.uuid4())
+        history = get_session_history(active_session_id, user_uid)
         
         try:
             MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -44,11 +45,22 @@ def register_chat_routes(app: FastAPI):
                 raise HTTPException(status_code=400, detail="Image size exceeds maximum limit of 10MB.")
 
             image_bytes = await image.read()
-            search_result = await run_visual_search(image_bytes, message, user_uid=user_uid)
+            search_result = await execute_visual_chat(
+                image_bytes=image_bytes,
+                user_query=message,
+                chat_history=history,
+                user_uid=user_uid,
+                mime_type=image.content_type or "image/jpeg"
+            )
+        except GuardrailException as ge:
+            return {
+                "text": str(ge),
+                "products": [],
+                "session_id": active_session_id
+            }
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Visual search failed: {str(e)}")
 
-        history = get_session_history(active_session_id, user_uid)
         history.append({"role": "user", "content": f"[Buscou por Imagem] {message}".strip()})
         history.append({"role": "model", "content": search_result["text"]})
         save_session_history(active_session_id, history, user_uid)
