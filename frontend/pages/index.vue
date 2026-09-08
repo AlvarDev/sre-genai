@@ -246,13 +246,23 @@
                 </div>
               </div>
             </div>
+            <!-- Session ID directly above the footer line -->
+            <div 
+              v-if="sessionId" 
+              class="drawer-session-simple" 
+              @click="copySessionId" 
+              :title="'Click to copy Session ID: ' + sessionId"
+            >
+              <span class="drawer-user-label">Session ID</span>
+              <span class="drawer-session-mono">{{ sessionId }}</span>
+            </div>
           </div>
 
           <!-- Drawer Footer with Admin Status & Logout -->
-          <div class="drawer-footer" v-if="adminUserEmail">
+          <div class="drawer-footer" v-if="isAdmin">
             <div class="drawer-user-info">
               <span class="drawer-user-label">Logged in as</span>
-              <span class="drawer-user-email" :title="adminUserEmail">{{ adminUserEmail }}</span>
+              <span class="drawer-user-email">{{ adminUserName }}</span>
             </div>
             <button class="drawer-logout-btn" @click="logoutAdmin" :disabled="isAuthLoading" title="Sign out of Admin Mode">
               Sign Out
@@ -290,7 +300,7 @@
 
             <div v-else class="admin-logged-in-box">
               <div class="admin-badge">✓ Active Administrator</div>
-              <div class="admin-email-display">{{ adminUserEmail }}</div>
+              <div class="admin-email-display">{{ adminUserName }}</div>
               <div class="admin-modal-actions">
                 <button class="primary-btn" @click="showAdminAuthModal = false; showSettingsModal = true">
                   Open Settings
@@ -335,10 +345,21 @@ const isMobile = ref(false)
 // Admin mode: true enables the demo settings button in the header
 const isAdmin = ref(false)
 const adminUserEmail = ref('')
+const adminUserName = ref('')
 const showSettingsModal = ref(false)
 const showAdminAuthModal = ref(false)
 const isAuthLoading = ref(false)
 const authError = ref('')
+
+const copySessionId = async () => {
+  if (!sessionId.value) return
+  try {
+    await navigator.clipboard.writeText(sessionId.value)
+    showDevToast('Session ID copied to clipboard! 📋')
+  } catch (err) {
+    console.error('Failed to copy session ID:', err)
+  }
+}
 const logoClickCount = ref(0)
 const devToastMessage = ref('')
 let logoClickTimeout = null
@@ -381,10 +402,12 @@ const loginWithGoogle = async () => {
     const tokenResult = await user.getIdTokenResult(true)
     if (tokenResult.claims && tokenResult.claims.sre_genai_admin === true) {
       adminUserEmail.value = user.email || ''
+      adminUserName.value = user.displayName || ''
       isAdmin.value = true
       showAdminAuthModal.value = false
     } else {
       isAdmin.value = false
+      adminUserName.value = ''
       authError.value = 'Access Denied: Missing sre_genai_admin role claim.'
       await logoutAdmin()
     }
@@ -403,6 +426,7 @@ const logoutAdmin = async () => {
     await signOut(authInstance)
     isAdmin.value = false
     adminUserEmail.value = ''
+    adminUserName.value = ''
     showSettingsModal.value = false
     showAdminAuthModal.value = false
     await signInAnonymously(authInstance)
@@ -463,12 +487,14 @@ const initAuth = async () => {
         if (tokenResult.claims && tokenResult.claims.sre_genai_admin === true) {
           userUid.value = user.uid
           adminUserEmail.value = user.email || ''
+          adminUserName.value = user.displayName || ''
           isAdmin.value = true
           authReady.value = true
           console.log(`Admin authenticated with UID: ${userUid.value}, email: ${adminUserEmail.value}`)
         } else {
           userUid.value = user.uid
           adminUserEmail.value = ''
+          adminUserName.value = ''
           isAdmin.value = false
           authReady.value = true
           console.log(`Non-admin Google user signed in, keeping admin mode disabled.`)
@@ -476,6 +502,7 @@ const initAuth = async () => {
       } else if (user) {
         userUid.value = user.uid
         adminUserEmail.value = ''
+        adminUserName.value = ''
         isAdmin.value = false
         authReady.value = true
         console.log(`Guest authenticated anonymously with UID: ${userUid.value}`)
@@ -483,6 +510,7 @@ const initAuth = async () => {
         const userCredential = await signInAnonymously(authInstance)
         userUid.value = userCredential.user.uid
         adminUserEmail.value = ''
+        adminUserName.value = ''
         isAdmin.value = false
         authReady.value = true
         console.log(`Authenticated silently with UID: ${userUid.value}`)
@@ -853,6 +881,12 @@ const submitMessage = async () => {
   line-height: 1;
 }
 
+.sheet-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .settings-group-label {
   font-size: 11px;
   font-weight: 600;
@@ -920,6 +954,7 @@ const submitMessage = async () => {
   background-color: #3186FF;
 }
 
+
 /* Sheet Slide Transition */
 .sheet-slide-enter-active, .sheet-slide-leave-active {
   transition: opacity 0.35s ease;
@@ -963,6 +998,28 @@ const submitMessage = async () => {
   font-weight: 500;
   color: var(--text-primary);
   word-break: break-all;
+}
+
+.drawer-session-simple {
+  margin-top: auto;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.drawer-session-simple:hover .drawer-session-mono {
+  color: var(--google-blue-text, #8ab4f8);
+}
+
+.drawer-session-mono {
+  font-family: 'Roboto Mono', 'SF Mono', Monaco, monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  transition: color 0.15s ease;
 }
 
 .drawer-logout-btn {
