@@ -16,13 +16,13 @@ from repository import ProductCatalogRepository
 
 # 1. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
-location = os.getenv("LOCATION")
+gemini_location = os.getenv("GEMINI_LOCATION")
 database_id = os.getenv("FIRESTORE_DATABASE")
 
 if not project_id:
     raise RuntimeError("PROJECT_ID environment variable is required but not set.")
-if not location:
-    raise RuntimeError("LOCATION environment variable is required but not set.")
+if not gemini_location:
+    raise RuntimeError("GEMINI_LOCATION environment variable is required but not set.")
 if not database_id:
     raise RuntimeError("FIRESTORE_DATABASE environment variable is required but not set.")
 
@@ -33,7 +33,7 @@ logger = logging.getLogger("catalog-mcp-server")
 # 2. Initialize Clients and Repositories Globally
 db = firestore.Client(database=database_id)
 catalog_repo = ProductCatalogRepository(db)
-genai_client = genai.Client(vertexai=True, project=project_id, location=location)
+genai_client = genai.Client(vertexai=True, project=project_id, location=gemini_location)
 logger.info(f"Initialized Firestore and GenAI clients. Project: {project_id}")
 
 service_name = os.getenv("K_SERVICE") or os.getenv("SERVICE_NAME")

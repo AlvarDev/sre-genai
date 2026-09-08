@@ -35,8 +35,12 @@ spec:
           env:
             - name: PROJECT_ID
               value: "PROJECT_ID_PLACEHOLDER"
-            - name: LOCATION
+            - name: GEMINI_LOCATION
               value: "us"
+            - name: VERTEX_PROMPT_LOCATION
+              value: "southamerica-east1"
+            - name: VERTEX_PROMPT_ID
+              value: "5019446502657884160"
             - name: FIRESTORE_DATABASE
               value: "sre-genai"
             - name: MCP_SERVER_URL

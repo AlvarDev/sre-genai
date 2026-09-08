@@ -19,13 +19,15 @@ except Exception as e:
 
 # 2. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
-location = os.getenv("LOCATION", "us")
-
 if not project_id:
     raise RuntimeError("PROJECT_ID environment variable is required but not set.")
 
+gemini_location = os.getenv("GEMINI_LOCATION")
+if not gemini_location:
+    raise RuntimeError("GEMINI_LOCATION environment variable is required but not set.")
+
 # Initialize the new Google GenAI Client
-client = genai.Client(vertexai=True, project=project_id, location=location)
+client = genai.Client(vertexai=True, project=project_id, location=gemini_location)
 
 # 3. Model Definition
 # We use Gemini 3.5 Flash-Lite for fast classification tasks

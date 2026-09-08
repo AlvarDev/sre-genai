@@ -1,6 +1,8 @@
 import base64
 import contextvars
 import os
+import logging
+import time
 import uuid
 from google.adk.agents import Agent
 from google.adk.runners import Runner
@@ -9,21 +11,67 @@ from google.adk import Event
 from google.adk.models.google_llm import Gemini
 from google.adk.models.lite_llm import LiteLlm
 from google.genai import types
+import vertexai
+from vertexai.preview import prompts
 
 from agent.search import call_catalog_text_search, call_catalog_image_search
 from agent.guardrail import validate_user_input, filter_retrieved_products
 
 # 1. Initialize Google Cloud project details
 project_id = os.getenv("PROJECT_ID")
-location = os.getenv("LOCATION", "us")
-
 if not project_id:
     raise RuntimeError("PROJECT_ID environment variable is required but not set.")
 
-# Load System Prompt
-prompt_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "system_prompt.txt")
-with open(prompt_path, "r", encoding="utf-8") as f:
-    system_instruction = f.read()
+gemini_location = os.getenv("GEMINI_LOCATION")
+if not gemini_location:
+    raise RuntimeError("GEMINI_LOCATION environment variable is required but not set.")
+
+# Initialize Vertex AI for Prompt Management (Prompts are stored regionally)
+vertex_prompt_location = os.getenv("VERTEX_PROMPT_LOCATION")
+if not vertex_prompt_location:
+    raise RuntimeError("VERTEX_PROMPT_LOCATION environment variable is required but not set.")
+
+vertexai.init(project=project_id, location=vertex_prompt_location)
+VERTEX_PROMPT_ID = os.getenv("VERTEX_PROMPT_ID")
+if not VERTEX_PROMPT_ID:
+    raise RuntimeError("VERTEX_PROMPT_ID environment variable is required but not set.")
+PROMPT_CACHE_TTL = int(os.getenv("PROMPT_CACHE_TTL_SECONDS", "600"))  # 10 minutes cache
+
+logger = logging.getLogger("orchestrator.prompt_loader")
+_cached_instruction: str | None = None
+_last_prompt_fetch_time: float = 0.0
+
+def get_system_instruction() -> str:
+    """
+    Retrieves the system instruction from Vertex AI Prompt Management with an in-memory TTL cache.
+    Fails-fast (raises RuntimeError) if Prompt Management is unavailable.
+    
+    FUTURE ARCHITECTURE NOTE:
+    In an upcoming release, when a prompt is published in Vertex AI Prompt Management,
+    it will be asynchronously replicated to a Google Cloud Storage bucket (e.g. gs://sre-genai-prompts/system_prompt.txt).
+    The secondary fallback will then read from that Cloud Storage mirror if Vertex AI Prompt Management is unreachable.
+    """
+    global _cached_instruction, _last_prompt_fetch_time
+    now = time.time()
+    if _cached_instruction and (now - _last_prompt_fetch_time < PROMPT_CACHE_TTL):
+        return _cached_instruction
+
+    try:
+        logger.info(f"Fetching prompt from Vertex AI Prompt Management (ID: {VERTEX_PROMPT_ID})...")
+        managed_prompt = prompts.get(prompt_id=VERTEX_PROMPT_ID)
+        instruction = managed_prompt.system_instruction or managed_prompt.prompt_data
+        if not instruction:
+            raise ValueError(f"Managed prompt '{VERTEX_PROMPT_ID}' contains empty system instruction.")
+        _cached_instruction = str(instruction)
+        _last_prompt_fetch_time = now
+        logger.info("Successfully fetched and cached prompt from Vertex AI Prompt Management.")
+        return _cached_instruction
+    except Exception as e:
+        logger.error(f"Vertex AI Prompt Management failure: {e}", exc_info=True)
+        raise RuntimeError(f"Failed to fetch prompt from Vertex AI Prompt Management (ID: {VERTEX_PROMPT_ID}): {e}") from e
+
+# Load initial prompt at module startup (Fail-fast verification)
+system_instruction = get_system_instruction()
 
 # Setup the LLM model connection
 model_name = os.getenv("CORE_MODEL", "gemini-3.8-flash")
@@ -42,7 +90,7 @@ else:
         client_kwargs={
             "vertexai": True,
             "project": project_id,
-            "location": location
+            "location": gemini_location
         }
     )
 
@@ -148,6 +196,9 @@ async def execute_text_chat(user_query: str, chat_history: list, user_uid: str =
         )
         await session_service.append_event(session, event)
 
+    # Ensure agent is using the current cached prompt (refreshes every 10m)
+    store_assistant_agent.instruction = get_system_instruction()
+
     # 4. Initialize ADK Runner
     runner = Runner(
         app_name="store_assistant",
@@ -222,6 +273,9 @@ async def execute_visual_chat(
                     turn_complete=True
                 )
                 await session_service.append_event(session, event)
+
+        # Ensure agent is using the current cached prompt (refreshes every 10m)
+        store_assistant_agent.instruction = get_system_instruction()
 
         runner = Runner(
             app_name="store_assistant",

@@ -30,7 +30,7 @@ steps:
       - '--region=southamerica-east1'
       - '--no-allow-unauthenticated'
       - '--service-account=catalog-mcp-sa@$PROJECT_ID.iam.gserviceaccount.com'
-      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,LOCATION=us,FIRESTORE_DATABASE=sre-genai'
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GEMINI_LOCATION=us,FIRESTORE_DATABASE=sre-genai'
 
 images:
   - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/catalog-mcp-server:$COMMIT_SHA'
