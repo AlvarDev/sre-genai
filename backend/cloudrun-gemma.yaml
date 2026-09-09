@@ -57,6 +57,8 @@ spec:
               value: "EVENT_ONLY"
             - name: ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS
               value: "false"
+            - name: OTEL_TRACES_SAMPLER
+              value: "always_on"
         # Sidecar Container: Gemma 4 E2B Inference Engine
         - name: inference-sidecar
           image: southamerica-east1-docker.pkg.dev/PROJECT_ID_PLACEHOLDER/sre-genai/llama-server:latest

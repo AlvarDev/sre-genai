@@ -110,4 +110,4 @@ def flush_telemetry():
 
 def setup_telemetry(app: FastAPI):
     """Instruments FastAPI application with OpenTelemetry."""
-    FastAPIInstrumentor.instrument_app(app)
+    FastAPIInstrumentor.instrument_app(app, exclude_spans=["receive", "send"])
