@@ -35,6 +35,7 @@ steps:
       - '--concurrency=80'
       - '--min-instances=0'
       - '--execution-environment=gen2'
+      - '--timeout=30s'
       - '--service-account=catalog-mcp-sa@$PROJECT_ID.iam.gserviceaccount.com'
       - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GEMINI_LOCATION=us,FIRESTORE_DATABASE=sre-genai'
 
