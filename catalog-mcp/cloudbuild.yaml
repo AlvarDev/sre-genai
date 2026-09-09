@@ -29,6 +29,12 @@ steps:
       - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/catalog-mcp-server:$COMMIT_SHA'
       - '--region=southamerica-east1'
       - '--no-allow-unauthenticated'
+      - '--no-cpu-throttling'
+      - '--cpu=2'
+      - '--memory=2Gi'
+      - '--concurrency=80'
+      - '--min-instances=0'
+      - '--execution-environment=gen2'
       - '--service-account=catalog-mcp-sa@$PROJECT_ID.iam.gserviceaccount.com'
       - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GEMINI_LOCATION=us,FIRESTORE_DATABASE=sre-genai'
 
