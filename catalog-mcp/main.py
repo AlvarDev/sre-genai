@@ -139,7 +139,7 @@ def health():
     return {"status": "healthy", "service": "catalog-mcp"}
 
 app.mount("/mcp", mcp.sse_app())
-FastAPIInstrumentor.instrument_app(app)
+FastAPIInstrumentor.instrument_app(app, exclude_spans=["receive", "send"])
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
