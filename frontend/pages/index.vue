@@ -356,6 +356,7 @@ const copySessionId = async () => {
   try {
     await navigator.clipboard.writeText(sessionId.value)
     showDevToast('Session ID copied to clipboard! 📋')
+    showSettingsModal.value = false
   } catch (err) {
     console.error('Failed to copy session ID:', err)
   }
