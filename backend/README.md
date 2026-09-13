@@ -9,9 +9,10 @@ FastAPI backend service built on top of the **Google Agent Development Kit (`goo
 * **Framework**: FastAPI (running on Uvicorn on port 8080)
 * **Agent Engine**: `google-adk` (`Agent`, `Runner`, `InMemorySessionService`)
 * **Package Manager**: `uv`
-* **Models**: `gemini-3.8-flash` (Core agent orchestrator), `gemini-3.1-flash-lite` (Guardrail classifier) & `gemini-embedding-2` (768-dim embeddings)
-* **Authentication**: Firebase Admin SDK & GCP OIDC Token Cache for service-to-service IAM calls
-* **Telemetry**: OpenTelemetry SDK with `opentelemetry-exporter-gcp-monitoring`
+* **Models**: `gemini-3.8-flash` (Core agent via Vertex AI), `gemma-4-e2b` (Local sidecar via LiteLLM / llama-server), `gemini-3.5-flash-lite` (Pre-LLM and Post-RAG guardrails). *Note: `gemini-embedding-2` is managed exclusively by the `catalog-mcp` service.*
+* **Prompt Management**: Dynamic system prompt retrieval via Vertex AI Prompt Management (`prompts.get`) with in-memory TTL caching.
+* **Authentication**: Firebase Admin SDK (token verification and `sre_genai_admin` RBAC claim enforcement on `backend-gemma`) & Google OIDC Identity Tokens for service-to-service IAM calls to `catalog-mcp`.
+* **Telemetry**: OpenTelemetry SDK with `opentelemetry-exporter-gcp-monitoring` (Cloud Monitoring), `opentelemetry-exporter-gcp-trace` (Cloud Trace), and Google Cloud-compliant JSON structured logging with trace/span correlation.
 
 ---
 
@@ -25,11 +26,14 @@ FastAPI backend service built on top of the **Google Agent Development Kit (`goo
 
 ## 🏗️ Internal Components
 
-* `main.py`: FastAPI entrypoint, Firebase auth validation (`get_current_user_uid`), and OpenTelemetry setup.
-* `agent/orchestrator.py`: ADK runner execution (`run_text_chat`, `run_visual_search`).
-* `agent/guardrail.py`: Pre-LLM jailbreak check & Post-RAG database drift filter (`GuardrailException`).
-* `agent/search.py`: SSE client connector for Catalog MCP service with thread-safe OIDC token cache (`OIDCTokenCache`).
+* `main.py`: FastAPI entrypoint, CORS middleware, route registration, and OpenTelemetry setup.
+* `auth.py`: Firebase ID token verification (`get_current_user_uid`) and zero-trust role-based access control enforcing the `sre_genai_admin` claim when connecting to `backend-gemma`.
+* `agent/orchestrator.py`: ADK runner execution (`execute_text_chat`, `execute_visual_chat`), dynamic prompt loading with TTL cache from Vertex AI Prompt Management (`prompts.get`), and dual-model selector (`Gemini` / `LiteLlm`).
+* `agent/guardrail.py`: Pre-LLM jailbreak validation (`validate_user_input`) and Post-RAG database drift filtering (`filter_retrieved_products`) powered by `gemini-3.5-flash-lite`.
+* `agent/search.py`: SSE client connector for Catalog MCP service with direct Google OIDC token acquisition and W3C `traceparent` context propagation.
 * `database.py`: Firestore session history persistence scoped by user subcollections.
+* `routers/chat.py` & `routers/health.py`: HTTP endpoint routing for chat, visual search, and health checks.
+* `config.py`: Service lifespan, Firestore database client, and CORS configuration.
 
 ---
 

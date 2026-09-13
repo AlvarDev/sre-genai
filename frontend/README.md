@@ -6,8 +6,9 @@ Vue 3 / Nuxt 3 frontend application presenting the Google Store Virtual Shopping
 
 ## 🛠️ Features
 
-* **Firebase Anonymous Authentication**: Authenticates users silently and attaches Bearer tokens to backend requests.
-* **Nitro Server Proxies**: Forwards `/api/chat` and `/api/visual-search` endpoints securely to backend microservices.
+* **Firebase Authentication & RBAC**: Authenticates users anonymously by default, and supports Google Sign-In with Custom Claims (`sre_genai_admin`) for presenter/admin mode.
+* **Admin Easter Egg & Model Switcher**: Unlocked via a 7-click sequence on the Google logo, enabling a settings drawer to switch between `Gemini 3.8 Flash` and `Gemma 4 E2B`.
+* **Direct Backend Communication**: Browser client issues authenticated requests directly to Cloud Run or Minikube backend endpoints with Bearer tokens (with optional Nitro server proxies available in `server/api/`).
 * **Theme Customization**: Responsive dark/light themes powered by CSS tokens and Google brand palette.
 * **UI Features**: Responsive horizontal product carousel, image upload picker for visual search, and checkout simulation modal.
 
@@ -16,7 +17,7 @@ Vue 3 / Nuxt 3 frontend application presenting the Google Store Virtual Shopping
 ## 🏗️ Architecture
 
 * `app.vue`: Global root layout and Google color palette design tokens.
-* `pages/index.vue`: Chat workspace, message history stream, product carousel rendering, and visual search input bar.
+* `pages/index.vue`: Chat workspace, message history stream, product carousel rendering, visual search input bar, and admin settings drawer.
 * `server/api/chat.post.ts`: Nitro proxy to backend `/chat`.
 * `server/api/visual-search.post.ts`: Nitro proxy to backend `/visual-search`.
 * `nuxt.config.ts`: Public runtime environment keys for Firebase and backend URLs.

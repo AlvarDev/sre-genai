@@ -9,30 +9,30 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 ```
                     +-----------------------------------+
                     |         Nuxt 3 Frontend           |
-                    |   (Anonymous Firebase Auth)       |
+                    |   (Anonymous & Admin Google Auth) |
                     +-----------------+-----------------+
-                                      | HTTP / JSON & Form
+                                      | Direct HTTP (Bearer Token)
                                       v
-                    +-----------------+-----------------+
-                    |     FastAPI Agent Backend         |
-                    |  (Google ADK + Guardrails + OTel) |
-                    +--------+----------------+---------+
-                             |                |
-              Pre & Post LLM |                | SSE (MCP Protocol)
-                 Guardrails  |                | + OIDC Auth Cache
-                             v                v
-                +------------+----+  +--------+----------+
-                |  Gemini 3.1     |  | FastMCP Catalog   |
-                |  Flash / Lite   |  | Service (Port     |
-                +-----------------+  | 8001)             |
-                                     +--------+----------+
-                                              | Vector Search
-                                              v
-                                     +-------------------+
-                                     | Cloud Firestore   |
-                                     | (Database:        |
-                                     | 'sre-genai')      |
-                                     +-------------------+
+                    +------------------------------------+
+                    |        FastAPI Agent Backend       |
+                    |   (Google ADK + Guardrails + OTel) |
+                    +--------+-----------------+---------+
+                             |                 |
+              Pre & Post LLM |                 | SSE (MCP Protocol)
+                 Guardrails  |                 | + Google OIDC Auth
+                             v                 v
+     +-----------------------+-----+  +--------+----------+
+     |  Gemini 3.8 Flash (Cloud)   |  | FastMCP Catalog   |
+     |  or Gemma 4 E2B (Sidecar)   |  | Service (Port     |
+     |  + Gemini 3.5 Flash-Lite    |  | 8001)             |
+     +-----------------------------+  +--------+----------+
+                                               | Vector Search
+                                               v
+                                      +-------------------+
+                                      | Cloud Firestore   |
+                                      | (Database:        |
+                                      | 'sre-genai')      |
+                                      +-------------------+
 ```
 
 ---
@@ -41,11 +41,12 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 
 * **Multimodal Visual & Text Search**: Natural language search and visual query capabilities using `gemini-embedding-2` generating 768-dimensional multimodal vector embeddings.
 * **Model Context Protocol (MCP)**: Microservice separation of product catalog tools using `FastMCP` over Server-Sent Events (SSE).
+* **Dual-Inference Engine & RBAC**: Supports managed Vertex AI inference (`gemini-3.8-flash`) and self-hosted sidecar inference (`gemma-4-e2b` via `llama-server`) with zero-trust role-based access control (`sre_genai_admin` custom claim enforcement).
 * **Dual-Layer Guardrail Protection**:
-  * **Pre-LLM Guardrail**: Inputs are audited for prompt injection and jailbreak attempts using `gemini-3.1-flash-lite`.
+  * **Pre-LLM Guardrail**: Inputs are audited for prompt injection and jailbreak attempts using `gemini-3.5-flash-lite`.
   * **Post-RAG Guardrail**: Database responses are audited to silently strip off-topic item drift (e.g., injected grocery items like potatoes).
 * **SRE Telemetry & Observability**: OpenTelemetry metrics exported directly to GCP Cloud Monitoring tracking daily token usage, inference latency, and guardrail violation rates.
-* **Automated CI/CD Quality Gating**: `CloudBuild` pipeline integrating Vertex AI Evaluation (`EvalTask`) to test instruction following and coherence prior to Cloud Run deployment.
+* **Automated CI/CD Quality Gating (Reserved / Commented Out)**: Pipeline definition reserved for Vertex AI Evaluation (`EvalTask`) to test instruction following and coherence prior to Cloud Run deployment (currently commented out in CI/CD pipeline).
 
 ---
 
@@ -55,7 +56,7 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 * `catalog-mcp/`: FastMCP server running over SSE transport for Firestore vector search.
 * `frontend/`: Nuxt 3 / Vue 3 web interface with Google brand palette and Firebase anonymous authentication.
 * `docs/`: Technical guides for architecture, Cloud Run deployment, and microservice testing.
-* `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), CI/CD quality gate (`eval_test.py`), and admin claims (`manage_admin_claims.py`).
+* `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), CI/CD quality gate (`eval_test.py` - reserved / commented out), and admin claims (`manage_admin_claims.py`).
 * `k8s/`: Kubernetes deployment and service manifests for Minikube deployment.
 * `dashboards/`: Cloud Monitoring dashboard definition for token consumption and guardrail metrics.
 * `cloudbuild.yaml`: GCP Cloud Build pipeline definition.
