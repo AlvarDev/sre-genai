@@ -18,8 +18,6 @@ Vue 3 / Nuxt 3 frontend application presenting the Google Store Virtual Shopping
 
 * `app.vue`: Global root layout and Google color palette design tokens.
 * `pages/index.vue`: Chat workspace, message history stream, product carousel rendering, visual search input bar, and admin settings drawer.
-* `server/api/chat.post.ts`: Nitro proxy to backend `/chat`.
-* `server/api/visual-search.post.ts`: Nitro proxy to backend `/visual-search`.
 * `nuxt.config.ts`: Public runtime environment keys for Firebase and backend URLs.
 
 ---

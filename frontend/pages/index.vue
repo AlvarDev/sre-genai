@@ -331,7 +331,6 @@ import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, signOu
 
 // 1. Config & Runtime Env
 const config = useRuntimeConfig()
-const backendUrl = "/api"
 
 // Shared Theme State (Default to dark mode)
 const isDarkMode = useState('darkMode', () => true)
