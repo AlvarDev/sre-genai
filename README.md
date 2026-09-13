@@ -46,7 +46,6 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
   * **Pre-LLM Guardrail**: Inputs are audited for prompt injection and jailbreak attempts using `gemini-3.5-flash-lite`.
   * **Post-RAG Guardrail**: Database responses are audited to silently strip off-topic item drift (e.g., injected grocery items like potatoes).
 * **SRE Telemetry & Observability**: OpenTelemetry metrics exported directly to GCP Cloud Monitoring tracking daily token usage, inference latency, and guardrail violation rates.
-* **Automated CI/CD Quality Gating (Reserved / Commented Out)**: Pipeline definition reserved for Vertex AI Evaluation (`EvalTask`) to test instruction following and coherence prior to Cloud Run deployment (currently commented out in CI/CD pipeline).
 
 ---
 
@@ -56,7 +55,7 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 * `catalog-mcp/`: FastMCP server running over SSE transport for Firestore vector search.
 * `frontend/`: Nuxt 3 / Vue 3 web interface with Google brand palette and Firebase anonymous authentication.
 * `docs/`: Technical guides for architecture, Cloud Run deployment, and microservice testing.
-* `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), CI/CD quality gate (`eval_test.py` - reserved / commented out), and admin claims (`manage_admin_claims.py`).
+* `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), and admin claims (`manage_admin_claims.py`).
 * `k8s/`: Kubernetes deployment and service manifests for Minikube deployment.
 * `dashboards/`: Cloud Monitoring dashboard definition for token consumption and guardrail metrics.
 * `cloudbuild.yaml`: GCP Cloud Build pipeline definition.
@@ -67,7 +66,7 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 
 * 🚀 **[Cloud Run Deployment Guide](docs/deployment-cloudrun.md)**: Backend service build and deployment parameters (`--no-cpu-throttling`, environment models).
 * ☸️ **[Minikube Local Development Guide](docs/deployment-minikube.md)**: Sizing flags (`--cpus 6 --memory 7200m`), GCP auth addon, ext4 model storage, and Skaffold workflow.
-* 🧪 **[Backend Testing Guide](docs/testing-backend.md)**: Local testing workflows with Firebase Auth Emulator and `curl`.
+* 🧪 **[Backend Testing Guide](docs/testing-backend.md)**: Local testing workflows with `curl` and Firebase Auth.
 * ⚡ **[Catalog MCP Testing Guide](docs/testing-mcp.md)**: Manual JSON-RPC 2.0 SSE protocol testing for catalog tools.
 * 📦 **Microservice Specs**:
   * [Backend Service Readme](backend/README.md)
@@ -77,11 +76,6 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 ---
 
 ## 🛠️ Local Development & Deployment
-
-### Prerequisite: Firebase Auth Emulator
-```bash
-npx -y firebase-tools@latest emulators:start --only auth
-```
 
 ### 🔑 Presenter Admin Mode & Model Switcher
 Public attendees default to Vertex AI (Gemini). To unlock the settings drawer and switch to local sidecar inference (Gemma):
