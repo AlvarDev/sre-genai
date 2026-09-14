@@ -61,10 +61,11 @@ Deployments are managed declaratively via Cloud Build triggers using [`backend/c
 
 ### Deploying `backend-gemini` (Managed Vertex AI Agent)
 ```bash
+PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')
 gcloud run deploy backend-gemini \
   --image southamerica-east1-docker.pkg.dev/${PROJECT_ID}/sre-genai/backend-service:latest \
   --region southamerica-east1 \
-  --set-env-vars="PROJECT_ID=${PROJECT_ID},LOCATION=us,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.8-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,MCP_SERVER_URL=https://catalog-mcp-server-${PROJECT_NUMBER}.southamerica-east1.run.app/mcp/sse" \
+  --set-env-vars="PROJECT_ID=${PROJECT_ID},GEMINI_LOCATION=us,VERTEX_PROMPT_LOCATION=southamerica-east1,VERTEX_PROMPT_ID=5019446502657884160,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.8-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,SERVICE_NAME=backend-gemini,MCP_SERVER_URL=https://catalog-mcp-server-${PROJECT_NUMBER}.southamerica-east1.run.app/mcp/sse,OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental,OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY,ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false,OTEL_TRACES_SAMPLER=always_on" \
   --service-account backend-sa@${PROJECT_ID}.iam.gserviceaccount.com \
   --no-cpu-throttling \
   --allow-unauthenticated

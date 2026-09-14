@@ -1,54 +1,32 @@
 # Backend Service Testing Guide
 
-This guide explains how to test the `backend-service` locally, including launching dependencies and verifying authenticated requests.
+This guide explains how to test the `backend-gemini` and `backend-gemma` services locally or on Cloud Run, including obtaining authentication tokens and verifying requests with `curl`.
 
 ---
 
-### 1. Start the Firebase Auth Emulator
+### 1. Obtain a Firebase ID Token for Testing
 
-Run this command in the root of the project to start the local Auth Emulator:
+The backend services validate Firebase ID tokens (JWTs) via the Firebase Admin SDK. You can acquire an ID token using either method:
+
+#### Method A: Generate via Firebase Identity Toolkit REST API
+Generate an anonymous user token using your project's Web API Key:
 
 ```bash
-npx -y firebase-tools@latest emulators:start --only auth
-```
+export FIREBASE_API_KEY="<YOUR_FIREBASE_WEB_API_KEY>"
 
-*(Or, if you have `firebase-tools` installed globally, run: `firebase emulators:start --only auth`)*
-
-This starts the authentication emulator on port `9099` (with the web console available at `http://localhost:4000/auth`).
-
----
-
-### 2. Local Backend Service Configuration
-
-When running inside Minikube, the backend container automatically detects the local emulator via:
-*   `FIREBASE_AUTH_EMULATOR_HOST=10.0.2.2:9099`
-
----
-
-### 3. Verify Authenticated Requests (Using Curl)
-
-To test the authenticated backend endpoints (`/chat` or `/visual-search`) locally without the frontend UI, follow these steps:
-
-#### Step A: Generate a Mock Firebase ID Token
-Send an anonymous signup request directly to the local Auth Emulator:
-
-```bash
-curl -X POST -H "Content-Type: application/json" \
+curl -s -X POST -H "Content-Type: application/json" \
   -d '{"returnSecureToken": true}' \
-  "http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=mock-api-key"
+  "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}" | jq -r .idToken
 ```
 
-The response will contain the **`idToken`** (JWT):
-```json
-{
-  "idToken": "eyJhbGciOiJSUzI1Ni...",
-  "localId": "some-anonymous-uid",
-  "isNewUser": true
-}
-```
-*Copy the `idToken` value.*
+#### Method B: Copy from Running Frontend Web App
+When running the Nuxt frontend, open browser Developer Tools (Network tab), filter by `chat` or `visual-search`, and copy the token from the `Authorization: Bearer <token>` request header.
 
-#### Step B: Query the Backend Chat Endpoint
+---
+
+### 2. Verify Authenticated Requests (Using Curl)
+
+#### Step A: Query the Backend Chat Endpoint
 Send a POST request to the local backend `/chat` endpoint (port `8080`), passing the token in the `Authorization` header:
 
 ```bash

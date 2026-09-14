@@ -8,8 +8,8 @@ This document outlines the evaluation strategy for comparing **Backend Service 1
 
 Evaluate performance (latency & throughput) and capability (tool calling & structured output accuracy) across two self-hosted microservice backends under identical execution conditions:
 
-1. **Backend Service 1 (`backend-service`)**: Cloud Run microservice integrated with Gemini API.
-2. **Backend Service 2 (`gemma-backend-service`)**: Cloud Run microservice running Gemma on vCPU without GPUs.
+1. **Backend Service 1 (`backend-gemini`)**: Cloud Run microservice integrated with Gemini API.
+2. **Backend Service 2 (`backend-gemma`)**: Cloud Run microservice running Gemma on vCPU without GPUs.
 
 ---
 
@@ -30,17 +30,17 @@ Evaluate performance (latency & throughput) and capability (tool calling & struc
 
 ## 🛠️ Execution Commands
 
-### Benchmark Backend 1 (Gemini Backend):
+### Benchmark Backend 1 (`backend-gemini`):
 ```bash
-gbench --remote-endpoint https://backend-service-....southamerica-east1.run.app/v1 \
+gbench --remote-endpoint https://backend-gemini-....southamerica-east1.run.app/v1 \
        --golden-only \
        --serving-only \
        --results-dir ./results/gemini-backend
 ```
 
-### Benchmark Backend 2 (Gemma CPU Backend):
+### Benchmark Backend 2 (`backend-gemma`):
 ```bash
-gbench --remote-endpoint https://gemma-backend-service-....southamerica-east1.run.app/v1 \
+gbench --remote-endpoint https://backend-gemma-....southamerica-east1.run.app/v1 \
        --golden-only \
        --serving-only \
        --results-dir ./results/gemma-backend
