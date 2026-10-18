@@ -11,9 +11,10 @@ class ProductCatalogRepository:
         self.db = firestore_db
         self.collection = firestore_db.collection("products")
 
-    def find_similar_products(self, vector: list[float], limit: int = 3) -> list[dict]:
+    async def find_similar_products(self, vector: list[float], limit: int = 3) -> list[dict]:
         """
         Executes a nearest-neighbor vector search in Firestore and returns raw dicts.
+        Requires an async Firestore client (firestore.AsyncClient).
         """
         vector_query = self.collection.find_nearest(
             vector_field="image_embeddings",
@@ -21,7 +22,7 @@ class ProductCatalogRepository:
             distance_measure=DistanceMeasure.COSINE,
             limit=limit
         )
-        return [doc.to_dict() for doc in vector_query.stream()]
+        return [doc.to_dict() async for doc in vector_query.stream()]
 
     @staticmethod
     def format_products_to_string(products: list[dict]) -> str:

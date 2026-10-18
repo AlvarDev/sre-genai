@@ -14,7 +14,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_task\"}[1d])) or sum by (gen_ai_request_model, gen_ai_token_type) (increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_node\"}[1d]))"
+                  "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_task\"}[1d]))"
                 },
                 "plotType": "STACKED_BAR"
               }
@@ -37,7 +37,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (rate(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_task\"}[5m]))"
+                  "prometheusQuery": "sum by (gen_ai_request_model, gen_ai_token_type) (rate(workload_googleapis_com:gen_ai_client_token_usage_sum{monitored_resource=\"generic_task\"}[2m]))"
                 },
                 "plotType": "LINE"
               }
@@ -60,13 +60,13 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (violation_type) (increase(workload_googleapis_com:google_store_guardrail_violations{monitored_resource=\"generic_task\"}[1h]))"
+                  "prometheusQuery": "sum by (violation_type) (increase(workload_googleapis_com:google_store_guardrail_violations{monitored_resource=\"generic_task\"}[5m]))"
                 },
                 "plotType": "STACKED_BAR"
               }
             ],
             "yAxis": {
-              "label": "Violations / Hour",
+              "label": "Violations / 5 min",
               "scale": "LINEAR"
             }
           }
@@ -97,7 +97,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_sum{monitored_resource=\"generic_task\"}[5m])) / sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_count{monitored_resource=\"generic_task\"}[5m]))"
+                  "prometheusQuery": "sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_sum{monitored_resource=\"generic_task\"}[2m])) / sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_count{monitored_resource=\"generic_task\"}[2m]))"
                 },
                 "plotType": "LINE"
               }
@@ -120,7 +120,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (gen_ai_agent_name) (rate(workload_googleapis_com:gen_ai_invoke_agent_tool_calls_sum{monitored_resource=\"generic_task\"}[5m])) / sum by (gen_ai_agent_name) (rate(workload_googleapis_com:gen_ai_invoke_agent_tool_calls_count{monitored_resource=\"generic_task\"}[5m]))"
+                  "prometheusQuery": "sum by (gen_ai_agent_name) (rate(workload_googleapis_com:gen_ai_invoke_agent_tool_calls_sum{monitored_resource=\"generic_task\"}[2m])) / sum by (gen_ai_agent_name) (rate(workload_googleapis_com:gen_ai_invoke_agent_tool_calls_count{monitored_resource=\"generic_task\"}[2m]))"
                 },
                 "plotType": "LINE"
               }
@@ -143,7 +143,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (gen_ai_tool_name) (rate(workload_googleapis_com:gen_ai_execute_tool_duration_sum{monitored_resource=\"generic_task\"}[5m])) / sum by (gen_ai_tool_name) (rate(workload_googleapis_com:gen_ai_execute_tool_duration_count{monitored_resource=\"generic_task\"}[5m]))"
+                  "prometheusQuery": "sum by (gen_ai_tool_name) (rate(workload_googleapis_com:gen_ai_execute_tool_duration_sum{monitored_resource=\"generic_task\"}[2m])) / sum by (gen_ai_tool_name) (rate(workload_googleapis_com:gen_ai_execute_tool_duration_count{monitored_resource=\"generic_task\"}[2m]))"
                 },
                 "plotType": "LINE"
               }

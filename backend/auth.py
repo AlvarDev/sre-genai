@@ -1,9 +1,14 @@
+import logging
 import os
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 
 security = HTTPBearer()
+logger = logging.getLogger("auth")
+
+# Never echo token verification errors to clients.
+INVALID_TOKEN_DETAIL = "Token de autenticação inválido ou expirado."
 
 def get_current_user_uid(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """
@@ -15,11 +20,9 @@ def get_current_user_uid(credentials: HTTPAuthorizationCredentials = Depends(sec
     token = credentials.credentials
     try:
         decoded_token = auth.verify_id_token(token)
-    except Exception as e:
-        raise HTTPException(
-            status_code=401,
-            detail=f"Invalid or expired authentication token: {str(e)}"
-        )
+    except Exception:
+        logger.warning("Firebase ID token verification failed", exc_info=True)
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_DETAIL)
 
     # Zero-trust enforcement on backend-gemma
     is_gemma_service = os.getenv("SERVICE_NAME") == "backend-gemma" or os.getenv("K_SERVICE") == "backend-gemma"
@@ -48,9 +51,7 @@ def require_admin_user(credentials: HTTPAuthorizationCredentials = Depends(secur
         return decoded_token["uid"]
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=401,
-            detail=f"Invalid or expired authentication token: {str(e)}"
-        )
+    except Exception:
+        logger.warning("Firebase ID token verification failed", exc_info=True)
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_DETAIL)
 

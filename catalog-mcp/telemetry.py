@@ -1,12 +1,15 @@
 import json
 import logging
 import os
+import uuid
 from datetime import datetime, timezone
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+
+FLUSH_TIMEOUT_MILLIS = 3000
 
 
 class CloudLoggingFormatter(logging.Formatter):
@@ -54,6 +57,14 @@ def setup_logging(project_id: str):
     root_logger.addHandler(log_handler)
 
 
+def build_instance_id() -> str:
+    """Returns a per-process unique id: the Cloud Run revision (or 'local') plus a random suffix.
+
+    Cloud Run does not document HOSTNAME, so two instances could share it.
+    """
+    return f"{os.getenv('K_REVISION', 'local')}-{uuid.uuid4().hex[:8]}"
+
+
 def setup_telemetry(service_name: str, project_id: str) -> tuple[TracerProvider | None, trace.Tracer]:
     """Initializes OpenTelemetry TracerProvider with Google Cloud Trace exporter."""
     logger = logging.getLogger("catalog-mcp-server")
@@ -61,7 +72,7 @@ def setup_telemetry(service_name: str, project_id: str) -> tuple[TracerProvider 
     try:
         resource = Resource.create({
             "service.name": service_name,
-            "service.instance.id": os.getenv("HOSTNAME", "default-instance"),
+            "service.instance.id": build_instance_id(),
         })
         trace_exporter = CloudTraceSpanExporter(project_id=project_id)
         tracer_provider = TracerProvider(resource=resource)
@@ -79,7 +90,7 @@ def flush_telemetry(tracer_provider: TracerProvider | None):
     logger = logging.getLogger("catalog-mcp-server")
     if tracer_provider is not None:
         try:
-            tracer_provider.force_flush()
+            tracer_provider.force_flush(timeout_millis=FLUSH_TIMEOUT_MILLIS)
             tracer_provider.shutdown()
             logger.info("Flushed OpenTelemetry traces on catalog-mcp shutdown.")
         except Exception as e:

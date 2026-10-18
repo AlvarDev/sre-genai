@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from cors import add_cors, parse_allowed_origins
 import firebase_admin
 from google.cloud import firestore as gcloud_firestore
 
@@ -33,12 +33,4 @@ async def lifespan(app: FastAPI):
 
 
 def setup_cors(app: FastAPI):
-    allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
-    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    add_cors(app, parse_allowed_origins(os.getenv("ALLOWED_ORIGINS")))

@@ -147,7 +147,7 @@
           <input 
             type="file" 
             ref="imageInput" 
-            accept="image/*" 
+            accept="image/jpeg,image/png,image/webp" 
             style="display: none" 
             @change="onImageSelected"
           />
@@ -161,6 +161,7 @@
           <input 
             type="text" 
             v-model="inputText" 
+            maxlength="2000"
             :placeholder="dynamicPlaceholder"
             :disabled="isTyping"
             ref="messageInput"
@@ -685,7 +686,7 @@ const submitMessage = async () => {
         body: formData
       })
       
-      if (!response.ok) throw new Error('Visual search API failure')
+      if (!response.ok) throw Object.assign(new Error('api'), { status: response.status })
       responseData = await response.json()
     } else {
       // Execute Text-based Chat via JSON
@@ -701,7 +702,7 @@ const submitMessage = async () => {
         })
       })
       
-      if (!response.ok) throw new Error('Chat API failure')
+      if (!response.ok) throw Object.assign(new Error('api'), { status: response.status })
       const json = await response.json()
       responseData = {
         text: json.text,
@@ -718,9 +719,15 @@ const submitMessage = async () => {
     
   } catch (err) {
     console.error('Request failed:', err)
+    let errorMessage = 'Erro de comunicação com o assistente. Verifique se o backend está online.'
+    if (err?.status === 413 || err?.status === 415) {
+      errorMessage = 'Imagem inválida ou muito grande (máx. 10 MB; JPEG, PNG ou WebP).'
+    } else if (err?.status === 422) {
+      errorMessage = 'Mensagem muito longa (máx. 2000 caracteres).'
+    }
     messages.value.push({
       role: 'agent',
-      content: 'Erro de comunicação com o assistente. Verifique se o backend está online.'
+      content: errorMessage
     })
   } finally {
     isTyping.value = false

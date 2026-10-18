@@ -127,7 +127,10 @@ store_assistant_agent = Agent(
     name="store_assistant",
     model=core_model,
     instruction=system_instruction,
-    tools=[search_catalog_by_text, search_catalog_by_image]
+    tools=[search_catalog_by_text, search_catalog_by_image],
+    # Bound response length (and cost) while the demo URL is public. The limit includes
+    # thinking tokens, so leave room for the default thinking level plus the answer.
+    generate_content_config=types.GenerateContentConfig(max_output_tokens=4096),
 )
 
 def parse_structured_products(clean_results: str) -> list[dict]:

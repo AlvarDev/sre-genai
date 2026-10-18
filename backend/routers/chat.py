@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from opentelemetry import trace
@@ -6,6 +8,12 @@ from models import ChatRequest, ChatResponse
 from database import get_session_history, save_session_history
 from agent.orchestrator import execute_text_chat, execute_visual_chat
 from agent.guardrail import GuardrailException
+from validation import MAX_IMAGE_BYTES, MAX_MESSAGE_CHARS, detect_image_type, read_capped
+
+logger = logging.getLogger("chat")
+
+# Never return exception text to clients; details go to the server log only.
+GENERIC_ERROR_DETAIL = "Erro interno ao processar sua solicitação."
 
 def register_chat_routes(app: FastAPI):
     @app.post("/chat", response_model=ChatResponse)
@@ -19,7 +27,8 @@ def register_chat_routes(app: FastAPI):
             span.set_attribute("session_id", session_id)
             span.set_attribute("enduser.id", user_uid)
 
-        history = get_session_history(session_id, user_uid)
+        # database.py uses the synchronous Firestore client; run it off the event loop.
+        history = await asyncio.to_thread(get_session_history, session_id, user_uid)
 
         try:
             agent_res = await execute_text_chat(user_query, history, user_uid=user_uid)
@@ -27,12 +36,15 @@ def register_chat_routes(app: FastAPI):
             products = agent_res["products"]
         except GuardrailException as ge:
             return ChatResponse(text=str(ge), session_id=session_id, products=[])
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Agent execution failed: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("chat failed")
+            raise HTTPException(status_code=500, detail=GENERIC_ERROR_DETAIL)
 
         history.append({"role": "user", "content": user_query})
         history.append({"role": "model", "content": agent_reply})
-        save_session_history(session_id, history, user_uid)
+        await asyncio.to_thread(save_session_history, session_id, history, user_uid)
 
         return ChatResponse(text=agent_reply, session_id=session_id, products=products)
 
@@ -51,20 +63,26 @@ def register_chat_routes(app: FastAPI):
             span.set_attribute("session_id", active_session_id)
             span.set_attribute("enduser.id", user_uid)
 
-        history = get_session_history(active_session_id, user_uid)
-        
+        # Validate input before any model or database call.
+        if len(message) > MAX_MESSAGE_CHARS:
+            raise HTTPException(status_code=422, detail=f"Mensagem muito longa (máx. {MAX_MESSAGE_CHARS} caracteres).")
         try:
-            MAX_FILE_SIZE = 10 * 1024 * 1024
-            if image.size and image.size > MAX_FILE_SIZE:
-                raise HTTPException(status_code=400, detail="Image size exceeds maximum limit of 10MB.")
+            image_bytes = await read_capped(image, MAX_IMAGE_BYTES)
+        except ValueError:
+            raise HTTPException(status_code=413, detail="Imagem muito grande (máx. 10 MB).")
+        detected_mime_type = detect_image_type(image_bytes)
+        if detected_mime_type is None:
+            raise HTTPException(status_code=415, detail="Formato de imagem não suportado (use JPEG, PNG ou WebP).")
 
-            image_bytes = await image.read()
+        history = await asyncio.to_thread(get_session_history, active_session_id, user_uid)
+
+        try:
             search_result = await execute_visual_chat(
                 image_bytes=image_bytes,
                 user_query=message,
                 chat_history=history,
                 user_uid=user_uid,
-                mime_type=image.content_type or "image/jpeg"
+                mime_type=detected_mime_type
             )
         except GuardrailException as ge:
             return {
@@ -72,12 +90,15 @@ def register_chat_routes(app: FastAPI):
                 "products": [],
                 "session_id": active_session_id
             }
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Visual search failed: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("visual search failed")
+            raise HTTPException(status_code=500, detail=GENERIC_ERROR_DETAIL)
 
         history.append({"role": "user", "content": f"[Buscou por Imagem] {message}".strip()})
         history.append({"role": "model", "content": search_result["text"]})
-        save_session_history(active_session_id, history, user_uid)
+        await asyncio.to_thread(save_session_history, active_session_id, history, user_uid)
 
         return {
             "text": search_result["text"],

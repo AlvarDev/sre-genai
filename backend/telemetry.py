@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import uuid
 from datetime import datetime, timezone
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
@@ -15,6 +16,8 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 provider: MeterProvider | None = None
 tracer_provider: TracerProvider | None = None
+# Keep metric + trace flush well within Cloud Run's and Podman's 10 s SIGTERM window.
+FLUSH_TIMEOUT_MILLIS = 3000
 
 
 class CloudLoggingFormatter(logging.Formatter):
@@ -62,12 +65,21 @@ def setup_logging(project_id: str | None):
     root_logger.addHandler(handler)
 
 
+def build_instance_id() -> str:
+    """Returns a per-process unique id: the Cloud Run revision (or 'local') plus a random suffix.
+
+    Cloud Run does not document HOSTNAME, so two instances could share it and
+    write to the same Cloud Monitoring time series.
+    """
+    return f"{os.getenv('K_REVISION', 'local')}-{uuid.uuid4().hex[:8]}"
+
+
 def init_telemetry(service_name: str, project_id: str | None):
     """Initializes OpenTelemetry Metrics and Trace Providers with GCP Exporters."""
     global provider, tracer_provider
     try:
         export_interval_ms = int(os.getenv("OTEL_EXPORT_INTERVAL_MS", "60000"))
-        instance_id = os.getenv("HOSTNAME", "default-instance")
+        instance_id = build_instance_id()
         resource = Resource.create({
             "service.name": service_name,
             "service.instance.id": instance_id,
@@ -94,14 +106,14 @@ def flush_telemetry():
     """Flushes metrics and traces on application shutdown."""
     if provider is not None:
         try:
-            provider.force_flush()
+            provider.force_flush(timeout_millis=FLUSH_TIMEOUT_MILLIS)
             provider.shutdown()
             print("Flushed OpenTelemetry metrics on app shutdown.")
         except Exception as e:
             print(f"Error flushing metrics: {e}")
     if tracer_provider is not None:
         try:
-            tracer_provider.force_flush()
+            tracer_provider.force_flush(timeout_millis=FLUSH_TIMEOUT_MILLIS)
             tracer_provider.shutdown()
             print("Flushed OpenTelemetry traces on app shutdown.")
         except Exception as e:
