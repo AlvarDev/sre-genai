@@ -6,6 +6,7 @@ metadata:
     cloud.googleapis.com/location: southamerica-east1
   annotations:
     run.googleapis.com/launch-stage: GA
+    run.googleapis.com/maxScale: '1'
 spec:
   template:
     metadata:
@@ -44,7 +45,7 @@ spec:
             - name: FIRESTORE_DATABASE
               value: "sre-genai"
             - name: MCP_SERVER_URL
-              value: "https://catalog-mcp-server-PROJECT_NUMBER_PLACEHOLDER.southamerica-east1.run.app/mcp/sse"
+              value: "https://catalog-mcp-server-PROJECT_NUMBER_PLACEHOLDER.southamerica-east1.run.app/mcp/"
             - name: CORE_MODEL
               value: "gemma-4-e2b"
             - name: GUARDRAIL_MODEL
@@ -59,6 +60,13 @@ spec:
               value: "false"
             - name: OTEL_TRACES_SAMPLER
               value: "always_on"
+            # 15s export interval for live demos; OpenTelemetry default is 60s.
+            - name: OTEL_EXPORT_INTERVAL_MS
+              value: "15000"
+            - name: ALLOWED_ORIGINS
+              value: "https://frontend-service-PROJECT_NUMBER_PLACEHOLDER.southamerica-east1.run.app"
+            - name: GOOGLE_GENAI_USE_ENTERPRISE
+              value: "true"
         # Sidecar Container: Gemma 4 E2B Inference Engine
         - name: inference-sidecar
           image: southamerica-east1-docker.pkg.dev/PROJECT_ID_PLACEHOLDER/sre-genai/llama-server:latest

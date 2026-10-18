@@ -39,15 +39,16 @@ steps:
       - 'backend-gemini'
       - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service:$COMMIT_SHA'
       - '--region=southamerica-east1'
-      - '--allow-unauthenticated'
+      - '--no-allow-unauthenticated'
       - '--no-cpu-throttling'
       - '--cpu=4'
       - '--memory=8Gi'
       - '--concurrency=80'
-      - '--min-instances=0'
+      - '--max=4'
       - '--execution-environment=gen2'
       - '--service-account=backend-sa@$PROJECT_ID.iam.gserviceaccount.com'
-      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GEMINI_LOCATION=us,VERTEX_PROMPT_LOCATION=southamerica-east1,VERTEX_PROMPT_ID=5019446502657884160,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.8-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,SERVICE_NAME=backend-gemini,MCP_SERVER_URL=https://catalog-mcp-server-$PROJECT_NUMBER.southamerica-east1.run.app/mcp/sse,OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental,OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY,ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false,OTEL_TRACES_SAMPLER=always_on'
+      # OTEL_EXPORT_INTERVAL_MS=15000: 15s export interval for live demos; OpenTelemetry default is 60s.
+      - '--set-env-vars=PROJECT_ID=$PROJECT_ID,GEMINI_LOCATION=us,VERTEX_PROMPT_LOCATION=southamerica-east1,VERTEX_PROMPT_ID=5019446502657884160,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.8-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,SERVICE_NAME=backend-gemini,MCP_SERVER_URL=https://catalog-mcp-server-$PROJECT_NUMBER.southamerica-east1.run.app/mcp/,OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental,OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY,ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false,OTEL_TRACES_SAMPLER=always_on,OTEL_EXPORT_INTERVAL_MS=15000,ALLOWED_ORIGINS=https://frontend-service-$PROJECT_NUMBER.southamerica-east1.run.app,GOOGLE_GENAI_USE_ENTERPRISE=true'
 
   # 4. Deploy backend-gemma (Declarative Multi-Container Sidecar + GCS FUSE Mount)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -60,19 +61,6 @@ steps:
         sed -i "s|PROJECT_ID_PLACEHOLDER|$PROJECT_ID|g" backend/cloudrun-gemma.yaml
         sed -i "s|PROJECT_NUMBER_PLACEHOLDER|$PROJECT_NUMBER|g" backend/cloudrun-gemma.yaml
         gcloud run services replace backend/cloudrun-gemma.yaml --region=southamerica-east1
-
-  # 5. Grant Public Ingress to backend-gemma (allUsers -> roles/run.invoker)
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'authorize-backend-gemma'
-    entrypoint: 'gcloud'
-    args:
-      - 'run'
-      - 'services'
-      - 'add-iam-policy-binding'
-      - 'backend-gemma'
-      - '--region=southamerica-east1'
-      - '--member=allUsers'
-      - '--role=roles/run.invoker'
 
 images:
   - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/sre-genai/backend-service:$COMMIT_SHA'

@@ -14,6 +14,7 @@ spec:
       labels:
         app: backend-gemini
     spec:
+      serviceAccountName: backend-sa
       containers:
         - name: backend-gemini
           image: backend-service
@@ -25,8 +26,10 @@ spec:
               value: "8080"
             - name: SERVICE_NAME
               value: "backend-gemini"
+            - name: ALLOWED_ORIGINS
+              value: "http://localhost:3000"
             - name: MCP_SERVER_URL
-              value: "http://catalog-mcp-service:8001/mcp/sse"
+              value: "http://catalog-mcp-service:8001/mcp/"
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
@@ -50,6 +53,32 @@ spec:
               value: "EVENT_ONLY"
             - name: ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS
               value: "false"
+            # Workload Identity Federation (direct resource access)
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/workload-identity/credential-configuration.json"
+            - name: GOOGLE_CLOUD_PROJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PROJECT_ID
+          volumeMounts:
+            - name: token
+              mountPath: /var/run/service-account
+              readOnly: true
+            - name: workload-identity-credential-configuration
+              mountPath: /etc/workload-identity
+              readOnly: true
+      volumes:
+        - name: token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://iam.googleapis.com/projects/1010474272420/locations/global/workloadIdentityPools/local-kind/providers/gstore-cluster
+                  expirationSeconds: 3600
+                  path: token
+        - name: workload-identity-credential-configuration
+          configMap:
+            name: workload-identity-credential-configuration
 ---
 apiVersion: v1
 kind: Service

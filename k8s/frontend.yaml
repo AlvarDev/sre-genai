@@ -27,9 +27,18 @@ spec:
               value: "http://localhost:8080"
             - name: NUXT_PUBLIC_BACKEND_GEMMA_URL
               value: "http://localhost:8081"
-          envFrom:
-            - secretRef:
-                name: frontend-env
+            - name: NUXT_PUBLIC_FIREBASE_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: FIREBASE_API_KEY
+            - name: NUXT_PUBLIC_FIREBASE_PROJECT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PROJECT_ID
+            - name: NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+              value: "$(NUXT_PUBLIC_FIREBASE_PROJECT_ID).firebaseapp.com"
 ---
 apiVersion: v1
 kind: Service

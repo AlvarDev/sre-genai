@@ -14,6 +14,7 @@ spec:
       labels:
         app: catalog-mcp
     spec:
+      serviceAccountName: catalog-mcp-sa
       containers:
         - name: catalog-mcp
           image: catalog-mcp-server
@@ -34,6 +35,32 @@ spec:
               value: "us"
             - name: FIRESTORE_DATABASE
               value: "sre-genai"
+            # Workload Identity Federation (direct resource access)
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/workload-identity/credential-configuration.json"
+            - name: GOOGLE_CLOUD_PROJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PROJECT_ID
+          volumeMounts:
+            - name: token
+              mountPath: /var/run/service-account
+              readOnly: true
+            - name: workload-identity-credential-configuration
+              mountPath: /etc/workload-identity
+              readOnly: true
+      volumes:
+        - name: token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://iam.googleapis.com/projects/1010474272420/locations/global/workloadIdentityPools/local-kind/providers/gstore-cluster
+                  expirationSeconds: 3600
+                  path: token
+        - name: workload-identity-credential-configuration
+          configMap:
+            name: workload-identity-credential-configuration
 ---
 apiVersion: v1
 kind: Service

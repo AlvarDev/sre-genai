@@ -1,10 +1,13 @@
 apiVersion: skaffold/v4beta11
 kind: Config
 metadata:
-  name: sre-genai-minikube
+  name: sre-genai-kind
 build:
   local:
     push: false
+    # Build with the `docker` CLI (podman on this workstation) instead of the Docker Engine API;
+    # rootless podman's API can't unpack build contexts owned by the host user's uid.
+    useDockerCLI: true
   artifacts:
     - image: backend-service
       context: backend
@@ -20,6 +23,7 @@ build:
         dockerfile: Dockerfile
 manifests:
   rawYaml:
+    - k8s/service-accounts.yaml
     - k8s/backend-gemini.yaml
     - k8s/backend-gemma.yaml
     - k8s/catalog-mcp.yaml
@@ -29,7 +33,9 @@ deploy:
     hooks:
       before:
         - host:
-            command: ["sh", "-c", "kubectl create configmap app-config --from-literal=PROJECT_ID=$(gcloud config get-value project 2>/dev/null) --dry-run=client -o yaml | kubectl apply -f -"]
+            command: ["sh", "-c", "PROJECT_ID=$(gcloud config get-value project 2>/dev/null) && FIREBASE_API_KEY=$(gcloud secrets versions access latest --secret=firebase-web-api-key --project=\"$PROJECT_ID\") && kubectl create configmap app-config --from-literal=PROJECT_ID=\"$PROJECT_ID\" --from-literal=FIREBASE_API_KEY=\"$FIREBASE_API_KEY\" --dry-run=client -o yaml | kubectl apply -f -"]
+        - host:
+            command: ["sh", "-c", "PROJECT_ID=$(gcloud config get-value project 2>/dev/null) && PROJECT_NUMBER=$(gcloud projects describe \"$PROJECT_ID\" --format=\"value(projectNumber)\") && TMP_CRED=$(mktemp) && trap 'rm -f \"$TMP_CRED\"' EXIT && gcloud iam workload-identity-pools create-cred-config \"projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/local-kind/providers/gstore-cluster\" --credential-source-file=/var/run/service-account/token --credential-source-type=text --output-file=\"$TMP_CRED\" --quiet && kubectl create configmap workload-identity-credential-configuration --from-file=credential-configuration.json=\"$TMP_CRED\" --dry-run=client -o yaml | kubectl apply -f -"]
 portForward:
   - resourceType: Service
     resourceName: frontend-service
@@ -57,6 +63,7 @@ profiles:
             dockerfile: Dockerfile
     manifests:
       rawYaml:
+        - k8s/service-accounts.yaml
         - k8s/backend-gemini.yaml
         - k8s/backend-gemma.yaml
         - k8s/catalog-mcp.yaml
