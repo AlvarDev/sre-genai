@@ -1,6 +1,6 @@
 # SRE GenAI - Google Store Multimodal Virtual Assistant
 
-Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmented Generation (RAG)**, **Model Context Protocol (MCP)**, **Dual-Layer Safety Guardrails**, and **Site Reliability Engineering (SRE)** monitoring on Google Cloud Platform (GCP) and Firebase.
+Reference demonstration platform showcasing **Multimodal Retrieval-Augmented Generation (RAG)**, **Model Context Protocol (MCP)**, **Dual-Layer Safety Guardrails**, and **Site Reliability Engineering (SRE)** monitoring on Google Cloud Platform (GCP) and Firebase.
 
 ---
 
@@ -18,7 +18,7 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
                     |   (Google ADK + Guardrails + OTel) |
                     +--------+-----------------+---------+
                              |                 |
-              Pre & Post LLM |                 | SSE (MCP Protocol)
+              Pre & Post LLM |                 | Streamable HTTP (MCP)
                  Guardrails  |                 | + Google OIDC Auth
                              v                 v
      +-----------------------+-----+  +--------+----------+
@@ -40,8 +40,8 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 ## 🚀 Key Features
 
 * **Multimodal Visual & Text Search**: Natural language search and visual query capabilities using `gemini-embedding-2` generating 768-dimensional multimodal vector embeddings.
-* **Model Context Protocol (MCP)**: Microservice separation of product catalog tools using `FastMCP` over Server-Sent Events (SSE).
-* **Dual-Inference Engine & RBAC**: Supports managed Vertex AI inference (`gemini-3.8-flash`) and self-hosted sidecar inference (`gemma-4-e2b` via `llama-server`) with zero-trust role-based access control (`sre_genai_admin` custom claim enforcement).
+* **Model Context Protocol (MCP)**: Microservice separation of product catalog tools using `FastMCP` over stateless Streamable HTTP.
+* **Dual-Inference Engine & RBAC**: Supports managed **Gemini Enterprise Agent Platform (Vertex AI)** inference (`gemini-3.8-flash`) and self-hosted sidecar inference (`gemma-4-e2b` via `llama-server`) with zero-trust role-based access control (`sre_genai_admin` custom claim enforcement).
 * **Dual-Layer Guardrail Protection**:
   * **Pre-LLM Guardrail**: Inputs are audited for prompt injection and jailbreak attempts using `gemini-3.5-flash-lite`.
   * **Post-RAG Guardrail**: Database responses are audited to silently strip off-topic item drift (e.g., injected grocery items like potatoes).
@@ -52,22 +52,22 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 ## 📁 Repository Structure
 
 * `backend/`: FastAPI service using `google-adk`, OpenTelemetry, and Firebase Admin SDK.
-* `catalog-mcp/`: FastMCP server running over SSE transport for Firestore vector search.
+* `catalog-mcp/`: FastMCP server running over stateless Streamable HTTP transport for Firestore vector search.
 * `frontend/`: Nuxt 3 / Vue 3 web interface with Google brand palette and Firebase anonymous authentication.
 * `docs/`: Technical guides for architecture, Cloud Run deployment, and microservice testing.
 * `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), and admin claims (`manage_admin_claims.py`).
-* `k8s/`: Kubernetes deployment and service manifests for Minikube deployment.
+* `k8s/`: Kubernetes deployment and service manifests for local KinD deployment.
 * `dashboards/`: Cloud Monitoring dashboard definition for token consumption and guardrail metrics.
-* `cloudbuild.yaml`: GCP Cloud Build pipeline definition.
+* `*/cloudbuild.yaml`: Per-service GCP Cloud Build pipeline definitions (`backend/`, `catalog-mcp/`, `frontend/`).
 
 ---
 
 ## 📚 Documentation Index
 
 * 🚀 **[Cloud Run Deployment Guide](docs/deployment-cloudrun.md)**: Backend service build and deployment parameters (`--no-cpu-throttling`, environment models).
-* ☸️ **[Minikube Local Development Guide](docs/deployment-minikube.md)**: Sizing flags (`--cpus 6 --memory 7200m`), GCP auth addon, ext4 model storage, and Skaffold workflow.
+* ☸️ **[KinD Local Development Guide](docs/deployment-kind.md)**: Rootless Podman cluster setup, Workload Identity Federation, node model storage, and Skaffold workflow.
 * 🧪 **[Backend Testing Guide](docs/testing-backend.md)**: Local testing workflows with `curl` and Firebase Auth.
-* ⚡ **[Catalog MCP Testing Guide](docs/testing-mcp.md)**: Manual JSON-RPC 2.0 SSE protocol testing for catalog tools.
+* ⚡ **[Catalog MCP Testing Guide](docs/testing-mcp.md)**: Manual JSON-RPC 2.0 Streamable HTTP protocol testing for catalog tools.
 * 📦 **Microservice Specs**:
   * [Backend Service Readme](backend/README.md)
   * [Catalog MCP Server Readme](catalog-mcp/README.md)
@@ -78,7 +78,7 @@ Production-grade demonstration platform showcasing **Multimodal Retrieval-Augmen
 ## 🛠️ Local Development & Deployment
 
 ### 🔑 Presenter Admin Mode & Model Switcher
-Public attendees default to Vertex AI (Gemini). To unlock the settings drawer and switch to local sidecar inference (Gemma):
+Public attendees default to Gemini Enterprise Agent Platform (Vertex AI — Gemini). To unlock the settings drawer and switch to local sidecar inference (Gemma):
 
 1. **Manage Admin Claim**:
    ```bash
@@ -91,22 +91,24 @@ Public attendees default to Vertex AI (Gemini). To unlock the settings drawer an
 2. **Activate in Browser**:
    Tap the Google logo **7 times** to trigger the developer Easter egg, sign in with your Google account, and use the three-dots menu (`⋮`) to switch models.
 
-### Deploying via Kubernetes (Minikube & Skaffold)
+### Deploying via Local Kubernetes (KinD & Skaffold)
 
-1. **Start Minikube with required sizing & GCP Auth**:
+1. **Create the KinD cluster (with Rootless Podman)**:
    ```bash
-   minikube start --driver=docker --cpus=6 --memory=7200m --addons=gcp-auth
+   KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --name gstore-cluster
    ```
-2. **Provision local model weights into Minikube storage**:
+2. **Provision local model weights into the KinD node**:
    ```bash
-   minikube ssh "sudo mkdir -p /var/models && sudo chown -R docker:docker /var/models"
-   minikube cp models/gemma-4-E2B-it-Q4_K_M.gguf /var/models/gemma-4-E2B-it-Q4_K_M.gguf
+   podman exec gstore-cluster-control-plane mkdir -p /var/models
+   podman cp models/gemma-4-E2B-it-Q4_K_M.gguf gstore-cluster-control-plane:/var/models/gemma-4-E2B-it-Q4_K_M.gguf
+   podman exec gstore-cluster-control-plane chown -R 10001:10001 /var/models
+   podman exec gstore-cluster-control-plane chmod 0640 /var/models/gemma-4-E2B-it-Q4_K_M.gguf
    ```
 3. **Start Skaffold dev loop**:
    ```bash
    skaffold dev
    ```
-   *(See [Minikube Local Development Guide](docs/deployment-minikube.md) for complete setup instructions).*
+   *(See [KinD Local Development Guide](docs/deployment-kind.md) for Workload Identity Federation setup and full instructions).*
 
 ### Production Deployment to Cloud Run
 
@@ -119,4 +121,12 @@ Public attendees default to Vertex AI (Gemini). To unlock the settings drawer an
    ```
 2. **Deploy via Cloud Build**:
    Deployments are managed automatically via Cloud Build triggers in `southamerica-east1` upon pushing to `main` (see [Cloud Run Deployment Guide](docs/deployment-cloudrun.md) for full details).
+
+---
+
+## 📄 License & Disclaimer
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
+
+> **Disclaimer:** This repository is a reference demonstration for educational and conference purposes and is not an officially supported Google product.
 

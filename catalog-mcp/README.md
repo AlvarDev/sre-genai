@@ -1,12 +1,12 @@
 # SRE GenAI - Catalog MCP Microservice
 
-FastMCP server exposing product catalog vector search tools over Server-Sent Events (SSE) protocol.
+FastMCP server exposing product catalog vector search tools over stateless Streamable HTTP (`/mcp/`).
 
 ---
 
 ## 🛠️ Key Capabilities
 
-* **Framework**: `FastMCP` mounted on FastAPI at `/mcp` (running on port 8001).
+* **Framework**: `FastMCP` (stateless Streamable HTTP) mounted on FastAPI at `/mcp/` (running on port 8001).
 * **Database**: Cloud Firestore (Database ID: `sre-genai`, Collection: `products`).
 * **Vector Index**: 768-dimensional `COSINE` distance nearest-neighbor vector search (`find_nearest`).
 * **Telemetry**: OpenTelemetry SDK exporting to Google Cloud Trace with JSON structured logging and trace correlation.
@@ -22,5 +22,7 @@ FastMCP server exposing product catalog vector search tools over Server-Sent Eve
 
 ## 🏗️ Architecture
 
-* `main.py`: `FastMCP` setup with DNS rebinding protection toggle, `ProductCatalogRepository` for Firestore vector operations, and tool registration.
-* `Dockerfile`: Container image definition using `uv` and Python 3.11 slim base.
+* `main.py`: `FastMCP` stateless Streamable HTTP setup with DNS rebinding protection toggle, lifespan session manager, and tool registration.
+* `catalog_service.py`: Async text and multimodal embedding + Firestore vector search orchestration.
+* `repository.py`: `ProductCatalogRepository` using Firestore `AsyncClient` for nearest-neighbor vector queries.
+* `Dockerfile`: Container image definition using `uv` and Python 3.13 slim base.

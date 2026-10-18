@@ -57,28 +57,17 @@ gcloud storage buckets add-iam-policy-binding gs://${PROJECT_ID}-files \
 
 ## 🚀 2. Service Deployment
 
-Deployments are managed declaratively via Cloud Build triggers using [`backend/cloudbuild.yaml`](../backend/cloudbuild.yaml).
+All deployments run through Cloud Build triggers on every push to `main`. There is no manual deploy path: the deploy settings (flags, environment variables, IAM) live only in [`backend/cloudbuild.yaml`](../backend/cloudbuild.yaml) and [`backend/cloudrun-gemma.yaml`](../backend/cloudrun-gemma.yaml). Change them there.
 
-### Deploying `backend-gemini` (Managed Vertex AI Agent)
-```bash
-PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')
-gcloud run deploy backend-gemini \
-  --image southamerica-east1-docker.pkg.dev/${PROJECT_ID}/sre-genai/backend-service:latest \
-  --region southamerica-east1 \
-  --set-env-vars="PROJECT_ID=${PROJECT_ID},GEMINI_LOCATION=us,VERTEX_PROMPT_LOCATION=southamerica-east1,VERTEX_PROMPT_ID=5019446502657884160,FIRESTORE_DATABASE=sre-genai,CORE_MODEL=gemini-3.8-flash,GUARDRAIL_MODEL=gemini-3.5-flash-lite,SERVICE_NAME=backend-gemini,MCP_SERVER_URL=https://catalog-mcp-server-${PROJECT_NUMBER}.southamerica-east1.run.app/mcp/sse,OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental,OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY,ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false,OTEL_TRACES_SAMPLER=always_on" \
-  --service-account backend-sa@${PROJECT_ID}.iam.gserviceaccount.com \
-  --no-cpu-throttling \
-  --allow-unauthenticated
-```
+For the backends, the build:
 
-### Deploying `backend-gemma` (Multi-Container Sidecar with GCS FUSE)
-Deploys the declarative manifest [`backend/cloudrun-gemma.yaml`](../backend/cloudrun-gemma.yaml) with dynamic project substitution:
+1. Builds the backend image and pushes it to Artifact Registry, tagged with the commit SHA.
+2. Deploys `backend-gemini` with `gcloud run deploy`.
+3. Deploys `backend-gemma` (multi-container sidecar with the GCS FUSE mount) with `gcloud run services replace`, after filling in the project placeholders in `cloudrun-gemma.yaml` inside the build workspace.
 
-```bash
-sed -i "s/PROJECT_ID_PLACEHOLDER/${PROJECT_ID}/g" backend/cloudrun-gemma.yaml
-sed -i "s/PROJECT_NUMBER_PLACEHOLDER/${PROJECT_NUMBER}/g" backend/cloudrun-gemma.yaml
-gcloud run services replace backend/cloudrun-gemma.yaml --region=southamerica-east1
-```
+Both backends are deployed **closed**: they require a Google identity token. To open them for a live audience and close them again, follow the [talk-day runbook](talk-day-runbook.md).
+
+`ALLOWED_ORIGINS` is required. The backend refuses to start if it is missing, empty or `*`. It must be the exact frontend URL, or the browser blocks the requests (CORS).
 
 ---
 

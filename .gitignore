@@ -17,6 +17,12 @@ ui-debug.log
 # Local Firebase config pinning specific projects
 .firebaserc
 
+# Local GCP / WIF credentials and keys (never commit)
+credential-configuration.json
+*-jwks.json
+*-key.json
+application_default_credentials.json
+
 # Node / Nuxt Frontend build output & dependencies
 node_modules/
 .nuxt/

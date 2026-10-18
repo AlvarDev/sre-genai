@@ -8,7 +8,7 @@ Vue 3 / Nuxt 3 frontend application presenting the Google Store Virtual Shopping
 
 * **Firebase Authentication & RBAC**: Authenticates users anonymously by default, and supports Google Sign-In with Custom Claims (`sre_genai_admin`) for presenter/admin mode.
 * **Admin Easter Egg & Model Switcher**: Unlocked via a 7-click sequence on the Google logo, enabling a settings drawer to switch between `Gemini 3.8 Flash` and `Gemma 4 E2B`.
-* **Direct Backend Communication**: Browser client issues authenticated requests directly to Cloud Run or Minikube backend endpoints with Bearer tokens (with optional Nitro server proxies available in `server/api/`).
+* **Direct Backend Communication**: Browser client issues authenticated requests directly to Cloud Run or local KinD backend endpoints with Bearer tokens.
 * **Theme Customization**: Responsive dark/light themes powered by CSS tokens and Google brand palette.
 * **UI Features**: Responsive horizontal product carousel, image upload picker for visual search, and checkout simulation modal.
 
@@ -22,20 +22,9 @@ Vue 3 / Nuxt 3 frontend application presenting the Google Store Virtual Shopping
 
 ---
 
-## 🔑 Local Development Secrets Setup
+## 🔑 Local Kubernetes Configuration
 
-Retrieve your Firebase Web API Key from the [Firebase Console](https://console.firebase.google.com/) (Project Settings > General > Your apps) and create the Kubernetes Secret before running `skaffold dev`:
-
-```bash
-export FIREBASE_API_KEY="<YOUR_FIREBASE_WEB_API_KEY>"
-export PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
-
-kubectl create secret generic frontend-env \
-  --from-literal=NUXT_PUBLIC_FIREBASE_API_KEY="$FIREBASE_API_KEY" \
-  --from-literal=NUXT_PUBLIC_FIREBASE_PROJECT_ID="$PROJECT_ID" \
-  --from-literal=NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN="${PROJECT_ID}.firebaseapp.com" \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
+When deploying into KinD via `skaffold dev`, the pre-deploy hook in [`skaffold.yaml`](../skaffold.yaml) automatically populates `PROJECT_ID` (from `gcloud config get-value project`) and `FIREBASE_API_KEY` (fetched from Google Cloud Secret Manager secret `firebase-web-api-key`) into the `app-config` ConfigMap. No manual Kubernetes Secret creation is required.
 
 ---
 
@@ -45,18 +34,18 @@ For visual and UI changes, run Nuxt natively on your machine to take advantage o
 
 ### Pre-configured Environment Profiles
 Both files are pre-configured and ignored by Git:
-* `.env.local`: Connects to local Minikube backends (`http://localhost:8080` & `http://localhost:8081`).
+* `.env.local`: Connects to local KinD backends (`http://localhost:8080` & `http://localhost:8081`).
 * `.env.cloud.local`: Connects to live Cloud Run backends.
 
 ### Commands
 
-* **Develop with Local Minikube Backends ($0.00 compute cost):**
+* **Develop with Local KinD Backends ($0.00 compute cost):**
   ```bash
   yarn dev
   ```
   *Executes `nuxt dev --dotenv .env.local`. Requires backends running via `skaffold dev -p backends-only`.*
 
-* **Develop with Live Cloud Run Backends (No Minikube/RAM strain):**
+* **Develop with Live Cloud Run Backends (No local K8s/RAM strain):**
   ```bash
   yarn dev:cloud
   ```

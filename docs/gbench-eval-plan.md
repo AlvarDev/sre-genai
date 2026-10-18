@@ -5,10 +5,10 @@
 
 ## 🎯 Executive Overview
 
-This evaluation plan benchmarks the **Google Store Multimodal Virtual Assistant**—an enterprise demonstration platform combining Multimodal RAG (`gemini-embedding-2`), Model Context Protocol (`FastMCP` over SSE), dual-layer guardrails, and Site Reliability Engineering (SRE) observability on Google Cloud Run.
+This evaluation plan benchmarks the **Google Store Multimodal Virtual Assistant**—an enterprise demonstration platform combining Multimodal RAG (`gemini-embedding-2`), Model Context Protocol (`FastMCP` over stateless Streamable HTTP), dual-layer guardrails, and Site Reliability Engineering (SRE) observability on Google Cloud Run.
 
 The primary objective is to conduct a rigorous comparison between two architecture patterns:
-1. **Managed Cloud API**: `Gemini 3.8 Flash` via **Google Agent Platform / Vertex AI**.
+1. **Managed Cloud API**: `Gemini 3.8 Flash` via **Gemini Enterprise Agent Platform (Vertex AI)**.
 2. **Self-Hosted Compute**: `Gemma 4` (`unsloth/gemma-4-E2B-it-GGUF` Q4_K_M) deployed via a **Multi-Container Sidecar with GCS Volume Mount** on Cloud Run.
 
 ---
