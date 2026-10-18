@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "google-cloud-firestore>=2.28.0",
+#     "cryptography>=50.0.2",
+#     "urllib3>=2.8.0",
+# ]
+# ///
 import os
 import csv
 import json
@@ -5,7 +14,11 @@ from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
 
 # 1. Initialize Firestore Client
-db = firestore.Client(database="sre-genai")
+project_id = os.getenv("PROJECT_ID")
+database_id = os.getenv("FIRESTORE_DATABASE", "sre-genai")
+if not project_id:
+    raise RuntimeError("PROJECT_ID environment variable is required.")
+db = firestore.Client(project=project_id, database=database_id)
 
 def generate_embeddings_and_seed():
     print("Starting database seed for database: sre-genai using CSV file")

@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "google-cloud-firestore>=2.28.0",
+#     "google-genai>=2.10.0",
+#     "anyio>=4.15.1",
+#     "cryptography>=50.0.2",
+#     "urllib3>=2.8.0",
+# ]
+# ///
 import os
 from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector

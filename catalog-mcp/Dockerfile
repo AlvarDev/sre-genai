@@ -4,19 +4,18 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN /uv/bin/uv sync --frozen --no-install-project
 
-FROM python:3.13-slim AS runner
+FROM gcr.io/distroless/python3-debian13:nonroot AS runner
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/app/.venv/bin:$PATH"
+    PYTHONPATH="/app/.venv/lib/python3.13/site-packages"
 
 WORKDIR /app
-RUN addgroup --system --gid 10001 appgroup && adduser --system --uid 10001 --ingroup appgroup appuser
-COPY --from=builder /app/.venv /app/.venv
-# Root owns the code; the app's group (gid 10001, created above) can read but not change it.
+COPY --from=builder /app/.venv/lib/python3.13/site-packages /app/.venv/lib/python3.13/site-packages
+# Root owns the code; the distroless nonroot group (gid 65532) can read but not change it.
 # Works whether the build host creates files as 0644 or 0640.
-COPY --chown=0:10001 . .
+COPY --chown=0:65532 . .
 
-USER appuser
+USER nonroot
 
 EXPOSE 8001
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+ENTRYPOINT ["/usr/bin/python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

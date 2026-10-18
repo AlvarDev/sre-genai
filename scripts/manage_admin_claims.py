@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.10"
+# requires-python = ">=3.11"
 # dependencies = [
-#     "firebase-admin>=6.2.0",
+#     "firebase-admin>=7.7.0",
+#     "pyjwt>=2.15.1",
+#     "cryptography>=50.0.2",
+#     "urllib3>=2.8.0",
 # ]
 # ///
 """
