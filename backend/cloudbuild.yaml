@@ -1,15 +1,4 @@
 steps:
-  # [COMMENTED OUT] Reserved for automated evaluation gate demo:
-  # - name: 'python:3.11-slim'
-  #   id: 'agent-evaluation-gate'
-  #   entrypoint: 'bash'
-  #   args:
-  #     - '-c'
-  #     - |
-  #       pip install --no-cache-dir uv
-  #       uv sync --project backend/ --frozen
-  #       backend/.venv/bin/python scripts/eval_test.py
-
   # 1. Build Unified Backend Image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-backend-service'

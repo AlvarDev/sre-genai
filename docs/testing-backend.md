@@ -48,12 +48,12 @@ curl -X POST -H "Content-Type: application/json" \
 
 
 #### Step C: Query the Backend Visual Search Endpoint
-To test image-based searches with the local `hoodie-io.png` file:
+To test image-based searches with the local `docs/assets/hoodie-io.png` file:
 
 ```bash
 curl -X POST \
   -H "Authorization: Bearer YOUR_ID_TOKEN_HERE" \
-  -F "image=@hoodie-io.png" \
+  -F "image=@docs/assets/hoodie-io.png" \
   -F "message=I want this but with the YouTube logo" \
   -F "session_id=test_session_123" \
   "http://localhost:8080/visual-search"
