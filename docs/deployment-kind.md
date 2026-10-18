@@ -120,15 +120,15 @@ curl -L "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4
 ```
 
 ### B. Copy Weights into the KinD Node Container
-Copy the GGUF file into `/var/models` inside `gstore-cluster-control-plane` and set ownership to UID/GID `10001:10001` (`0640`) so the non-root `inference-sidecar` container can read it:
+Copy the GGUF file into `/var/models` inside `gstore-cluster-control-plane` and set ownership to UID/GID `65532:65532` (`0640`) so the Distroless `nonroot` `inference-sidecar` container can read it:
 
 ```bash
 # 1. Create target directory inside the KinD control-plane node
 podman exec gstore-cluster-control-plane mkdir -p /var/models
 
-# 2. Copy the GGUF model weights and set non-root permissions (10001:10001)
+# 2. Copy the GGUF model weights and set nonroot permissions (65532:65532)
 podman cp models/gemma-4-E2B-it-Q4_K_M.gguf gstore-cluster-control-plane:/var/models/gemma-4-E2B-it-Q4_K_M.gguf
-podman exec gstore-cluster-control-plane chown -R 10001:10001 /var/models
+podman exec gstore-cluster-control-plane chown -R 65532:65532 /var/models
 podman exec gstore-cluster-control-plane chmod 0640 /var/models/gemma-4-E2B-it-Q4_K_M.gguf
 ```
 

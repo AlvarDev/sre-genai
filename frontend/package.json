@@ -14,10 +14,12 @@
   "dependencies": {
     "firebase": "^10.8.0",
     "nuxt": "^3.15.0",
-    "vue": "^3.4.0",
+    "vue": "^3.5.42",
     "vue-router": "^4.3.0"
   },
   "resolutions": {
-    "undici": "^6.28.1"
+    "@vue/server-renderer": "^3.5.42",
+    "source-map-js": "^1.2.2",
+    "undici": "^6.29.0"
   }
 }

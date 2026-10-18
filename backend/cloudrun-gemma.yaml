@@ -36,6 +36,8 @@ spec:
           env:
             - name: PROJECT_ID
               value: "PROJECT_ID_PLACEHOLDER"
+            - name: SERVICE_NAME
+              value: "backend-gemma"
             - name: GEMINI_LOCATION
               value: "us"
             - name: VERTEX_PROMPT_LOCATION

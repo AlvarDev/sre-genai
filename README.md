@@ -54,11 +54,12 @@ Reference demonstration platform showcasing **Multimodal Retrieval-Augmented Gen
 * `backend/`: FastAPI service using `google-adk`, OpenTelemetry, and Firebase Admin SDK.
 * `catalog-mcp/`: FastMCP server running over stateless Streamable HTTP transport for Firestore vector search.
 * `frontend/`: Nuxt 3 / Vue 3 web interface with Google brand palette and Firebase anonymous authentication.
+* `llama-server/`: Distroless C++ inference sidecar (`llama.cpp`) serving quantized Gemma 4 E2B weights in-memory.
 * `docs/`: Technical guides for architecture, Cloud Run deployment, and microservice testing.
 * `scripts/`: DB seeding (`seed_db.py`), SRE drift injection (`inject_drift.py`), and admin claims (`manage_admin_claims.py`).
 * `k8s/`: Kubernetes deployment and service manifests for local KinD deployment.
 * `dashboards/`: Cloud Monitoring dashboard definition for token consumption and guardrail metrics.
-* `*/cloudbuild.yaml`: Per-service GCP Cloud Build pipeline definitions (`backend/`, `catalog-mcp/`, `frontend/`).
+* `*/cloudbuild.yaml`: Per-service GCP Cloud Build pipeline definitions (`backend/`, `catalog-mcp/`, `frontend/`, `llama-server/`).
 
 ---
 
@@ -101,7 +102,7 @@ Public attendees default to Gemini Enterprise Agent Platform (Vertex AI — Gemi
    ```bash
    podman exec gstore-cluster-control-plane mkdir -p /var/models
    podman cp models/gemma-4-E2B-it-Q4_K_M.gguf gstore-cluster-control-plane:/var/models/gemma-4-E2B-it-Q4_K_M.gguf
-   podman exec gstore-cluster-control-plane chown -R 10001:10001 /var/models
+   podman exec gstore-cluster-control-plane chown -R 65532:65532 /var/models
    podman exec gstore-cluster-control-plane chmod 0640 /var/models/gemma-4-E2B-it-Q4_K_M.gguf
    ```
 3. **Start Skaffold dev loop**:

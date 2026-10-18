@@ -19,7 +19,7 @@ spec:
       serviceAccountName: backend-sa
       containers:
         - name: backend-gemma
-          image: backend-service:latest
+          image: backend-service
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
