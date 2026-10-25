@@ -15,9 +15,9 @@ from google.cloud.firestore_v1.vector import Vector
 
 # 1. Initialize Firestore Client
 project_id = os.getenv("PROJECT_ID")
-database_id = os.getenv("FIRESTORE_DATABASE", "sre-genai")
-if not project_id:
-    raise RuntimeError("PROJECT_ID environment variable is required.")
+database_id = os.getenv("FIRESTORE_DATABASE")
+if not project_id or not database_id:
+    raise RuntimeError("PROJECT_ID and FIRESTORE_DATABASE environment variables are required.")
 db = firestore.Client(project=project_id, database=database_id)
 
 def generate_embeddings_and_seed():

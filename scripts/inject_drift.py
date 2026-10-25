@@ -12,6 +12,7 @@
 import os
 from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
+from google.genai import Client, types
 
 # 1. Initialize Firestore Client
 project_id = os.getenv("PROJECT_ID")
@@ -48,6 +49,7 @@ def inject_database_drift():
     print("WARNING: Injecting off-topic database drift (grocery items) into 'sre-genai' database!")
     
     collection = db.collection("products")
+    client = Client(vertexai=True, project=project_id, location="us")
 
     for i, p in enumerate(grocery_items):
         print(f"Injecting drift item {i+1}/2: {p['title']}...")
@@ -56,19 +58,13 @@ def inject_database_drift():
         combined_text = f"{p['title']} {p['shortdesc']} {p['longdesc']} {p['keywords']}"
         
         # Generate real semantic vector embedding using gemini-embedding-2
-        try:
-            from google.genai import Client, types
-            client = Client(vertexai=True, project=project_id, location="us")
-            res = client.models.embed_content(
-                model="gemini-embedding-2",
-                contents=combined_text,
-                config=types.EmbedContentConfig(output_dimensionality=768)
-            )
-            image_vector = res.embeddings[0].values
-            print(f"Generated real embedding vector for: {p['title']}")
-        except Exception as embed_err:
-            print(f"Failed to generate real embedding vector: {embed_err}")
-            image_vector = [0.9] * 768
+        res = client.models.embed_content(
+            model="gemini-embedding-2",
+            contents=combined_text,
+            config=types.EmbedContentConfig(output_dimensionality=768)
+        )
+        image_vector = res.embeddings[0].values
+        print(f"Generated real embedding vector for: {p['title']}")
         
         # Build Firestore Document
         doc_data = {
