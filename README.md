@@ -66,7 +66,9 @@ Reference demonstration platform showcasing **Multimodal Retrieval-Augmented Gen
 ## 📚 Documentation Index
 
 * 🚀 **[Cloud Run Deployment Guide](docs/deployment-cloudrun.md)**: Backend service build and deployment parameters (`--no-cpu-throttling`, environment models).
+* 🎤 **[Talk-Day Runbook](docs/talk-day-runbook.md)**: Step-by-step checklist to warm up instances, open/close `allUsers` IAM access for live demos, and roll back revisions.
 * ☸️ **[KinD Local Development Guide](docs/deployment-kind.md)**: Rootless Podman cluster setup, Workload Identity Federation, node model storage, and Skaffold workflow.
+* 📐 **[ADR: Gemma 4 Sidecar Serving](docs/adr-gemma-sidecar-serving.md)**: Architectural decisions for multi-container Cloud Run GCS FUSE and local in-memory GGUF serving.
 * 🧪 **[Backend Testing Guide](docs/testing-backend.md)**: Local testing workflows with `curl` and Firebase Auth.
 * ⚡ **[Catalog MCP Testing Guide](docs/testing-mcp.md)**: Manual JSON-RPC 2.0 Streamable HTTP protocol testing for catalog tools.
 * 📦 **Microservice Specs**:

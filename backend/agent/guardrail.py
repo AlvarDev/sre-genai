@@ -18,7 +18,7 @@ try:
     _meter = metrics.get_meter("google_store.agent.guardrail")
     violations_counter = _meter.create_counter(
         name="google_store.guardrail.violations",
-        description="Number of off-topic database drift items filtered by the Guardrail Agent.",
+        description="Number of violations caught by the Guardrail.",
         unit="1"
     )
     # Same instrument definition ADK uses (name, unit, description), so guardrail

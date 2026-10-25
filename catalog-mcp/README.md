@@ -25,4 +25,4 @@ FastMCP server exposing product catalog vector search tools over stateless Strea
 * `main.py`: `FastMCP` stateless Streamable HTTP setup with DNS rebinding protection toggle, lifespan session manager, and tool registration.
 * `catalog_service.py`: Async text and multimodal embedding + Firestore vector search orchestration.
 * `repository.py`: `ProductCatalogRepository` using Firestore `AsyncClient` for nearest-neighbor vector queries.
-* `Dockerfile`: Container image definition using `uv` and Python 3.13 slim base.
+* `Dockerfile`: Multi-stage container image built with `uv` (Python 3.13) on a Google Distroless (`gcr.io/distroless/python3-debian13:nonroot`) runtime.
