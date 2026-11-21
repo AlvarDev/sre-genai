@@ -7,32 +7,25 @@ Reference demonstration platform showcasing **Multimodal Retrieval-Augmented Gen
 ## 🏛️ System Architecture
 
 ```
-                    +-----------------------------------+
-                    |         Nuxt 3 Frontend           |
-                    |   (Anonymous & Admin Google Auth) |
-                    +-----------------+-----------------+
-                                      | Direct HTTP (Bearer Token)
-                                      v
-                    +------------------------------------+
-                    |        FastAPI Agent Backend       |
-                    |   (Google ADK + Guardrails + OTel) |
-                    +--------+-----------------+---------+
-                             |                 |
-              Pre & Post LLM |                 | Streamable HTTP (MCP)
-                 Guardrails  |                 | + Google OIDC Auth
-                             v                 v
-     +-----------------------+-----+  +--------+----------+
-     |  Gemini 3.8 Flash (Cloud)   |  | FastMCP Catalog   |
-     |  or Gemma 4 E2B (Sidecar)   |  | Service (Port     |
-     |  + Gemini 3.5 Flash-Lite    |  | 8001)             |
-     +-----------------------------+  +--------+----------+
-                                               | Vector Search
-                                               v
-                                      +-------------------+
-                                      | Cloud Firestore   |
-                                      | (Database:        |
-                                      | 'sre-genai')      |
-                                      +-------------------+
++-----------------------------+                        +---------------------------------------+
+|       Nuxt 3 Frontend       |  HTTPS + Firebase JWT  |         FastAPI Agent Backend         |
+| (Guest & Admin Google Auth) | ---------------------> |   (Google ADK + Guardrails + OTel)    |
++-----------------------------+  /chat, /visual-search +---+------+---------------------+------+
+                 Pre/Post Guardrails & Inference           |      |                     |
+               +-------------------------------------------+      | Streamable HTTP MCP | Firestore SDK
+               v                                                  | (OIDC + traceparent)| (users/{uid}/
++--------------+--------------+                                   v                     |  conversations)
+|  Vertex AI / Model Serving  |                            +------+---------+           v
+| • Gemini 3.8 Flash (Agent)  | <------------------------- |  Catalog MCP   |   +-------+----------+
+| • Gemini 3.5 Flash-Lite     | gemini-embedding-2 (768-d) | (FastMCP:8001) |   | Cloud Firestore  |
+| • Gemma 4 E2B (Sidecar)     |                            +-------+--------+   | (DB: 'sre-genai' |
++-----------------------------+                                    |            | products & users)|
+                                                                   +----------> +--------+---------+
+                                                                     Cosine Vector       ^
+                                                                     Search (products)   | Seed / Drift
+                                                                                +--------+---------+
+                                                                                |   scripts (uv)   |
+                                                                                +------------------+
 ```
 
 ---
