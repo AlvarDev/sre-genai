@@ -94,7 +94,7 @@ def main():
     group.add_argument(
         "--grant",
         action="store_true",
-        help="Grant administrator privileges ({'admin': True})."
+        help="Grant administrator privileges ({'sre_genai_admin': True})."
     )
     group.add_argument(
         "--revoke",
