@@ -92,18 +92,18 @@
         "width": 5,
         "height": 4,
         "widget": {
-          "title": "Average Inference Latency",
+          "title": "Inference Latency (p95)",
           "xyChart": {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_sum{monitored_resource=\"generic_task\"}[2m])) / sum by (gen_ai_request_model) (rate(workload_googleapis_com:gen_ai_client_operation_duration_count{monitored_resource=\"generic_task\"}[2m]))"
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (gen_ai_request_model, le) (rate(workload_googleapis_com:gen_ai_client_operation_duration_bucket{monitored_resource=\"generic_task\"}[2m])))"
                 },
                 "plotType": "LINE"
               }
             ],
             "yAxis": {
-              "label": "Latency (Seconds)",
+              "label": "p95 Latency (Seconds)",
               "scale": "LINEAR"
             }
           }
@@ -138,18 +138,18 @@
         "width": 6,
         "height": 4,
         "widget": {
-          "title": "Tool Execution Duration",
+          "title": "Tool Execution Duration (p95)",
           "xyChart": {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (gen_ai_tool_name) (rate(workload_googleapis_com:gen_ai_execute_tool_duration_sum{monitored_resource=\"generic_task\"}[2m])) / sum by (gen_ai_tool_name) (rate(workload_googleapis_com:gen_ai_execute_tool_duration_count{monitored_resource=\"generic_task\"}[2m]))"
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (gen_ai_tool_name, le) (rate(workload_googleapis_com:gen_ai_execute_tool_duration_bucket{monitored_resource=\"generic_task\"}[2m])))"
                 },
                 "plotType": "LINE"
               }
             ],
             "yAxis": {
-              "label": "Latency (Seconds)",
+              "label": "p95 Latency (Seconds)",
               "scale": "LINEAR"
             }
           }
